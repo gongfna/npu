@@ -1,0 +1,1 @@
+/home/mzm/amba/iip/DW_axi_gm/1.04a/tcl/DW_axi_gm.elab.tcl

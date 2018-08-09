@@ -1,0 +1,34 @@
+#!/bin/sh
+# Get the platform
+case `/bin/uname` in
+  SunOS) plat=sparcOS5
+        ;;
+  Linux)
+    plat=linux
+    if [ `uname -m` = "ia64" ]
+    then
+      plat=linux72
+    elif [ -r /etc/issue ]
+    then
+        case `head -1 /etc/issue` in
+        *release\ 7.2*)
+            plat=linux72
+            ;;
+         esac
+    fi
+    ;;
+  HP-UX) plat=hp32
+        ;;
+  *)     echo "Unsupported platform `/bin/uname`"; exit 1
+    ;;
+esac
+perlScriptCall=""
+rtRoot=$1
+shift
+while [ $# -gt 0 ]
+do
+  perlScriptCall="$perlScriptCall $1"
+  shift
+done
+exec $rtRoot/$plat/dware/bin/snpsperl -I$rtRoot/$plat/dware/lib $perlScriptCall
+

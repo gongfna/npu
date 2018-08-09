@@ -1,0 +1,44 @@
+// component: (top level)
+// library: work
+// files:
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_cc_constants.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_constants.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_bcm_params.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_bcm05.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_bcm06.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_bcm07.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_bcm21.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_bcm51.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_bcm57.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_bcm65.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_bcm66.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_fifo_s1_sf.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_busmux_ohsel.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_busdemux.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_sd_fifo.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_w_ch_fifos.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_sp_r_rsfifos.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_sp_b_rsfifos.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_et.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_mp_a.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_mp_rb.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_mp_wfc.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_mp_w.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_mp.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_addr_alen.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_xact_ctrl.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_rs.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_sp_wfc.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_sp_a.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_r_dopack.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_r_packer.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_r_pusher.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_ue.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_sp_r.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_sp_b.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_sp_w.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_sp_w_top.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x_sp.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x.v
+/home/mzm/npu_sys/coreC/dw_iip_x2x256/src/DW_axi_x2x-undef.v
+

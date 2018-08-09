@@ -1,0 +1,409 @@
+#!/opt/synopsys/coretools/K-2015.06-SP5/linux64/dware/bin/snpsperl
+
+BEGIN { @INC = ( "/opt/synopsys/coretools/K-2015.06-SP5/linux64/dware/lib" ); }
+package main;
+require 5.004;
+# -------------------------------------------------------------------------
+#
+#
+#                      (C) COPYRIGHT 2001-2011 SYNOPSYS INC.
+#                             ALL RIGHTS RESERVED
+#
+#
+# File    : runtest
+# Author  : Joe Mc Cann
+# Created : Thu Jan 17 13:39:08 GMT 2002
+# Abstract: User interface script to coreKit simulation system
+#           This script is used by all Amba DesignWare macrocells to
+#           simulations on unpacked coreKits.
+#
+# -------------------------------------------------------------------------
+# Revision: $Id: //dwh/DW_ocb/DW_ahb_eh2h/main/pkg/perl/runtest#15 $ $Author: bella $ $DateTime: 2004/12/03 23:26:44 $
+# -------------------------------------------------------------------------
+
+use 5.004;            # -- Insist on Perl version 5.004 or newer for safety
+use strict;           # -- Follow rigid variable/subroutine declarations
+use File::Basename;   # -- Compute the containing directory of this script
+use lib (dirname $0); # -- and use it as the search path for any .pm modules
+use Getopt::Long;     # -- Command-line Options decoder with long options
+use runtest;          # -- Use runtest.pm
+$| = 1;               # -- Flush output stream continuously for readability
+
+use vars qw($Pgm $Invoke $Version $platform $ModName $argIndex $newDumpEnabled);
+use vars qw($argIndex $newDumpEnabled $newClockDefault $newTimeoutDefault);
+use vars qw($newView $newNetlistDir $newTechLib @newARGV);
+use vars qw($Pretend $ShowHelp $ShowVersion $Verbose $DesignName $RtlSim $Netlist);
+use vars qw($SdfFile $SdfLevel $RtlDir $LibDir $LibFile $Simulator $LogFile $DumpFile);
+use vars qw($TestbenchDir);
+use vars qw($ResultFile $DumpDepth $Coverage $VeraDebugLevel);
+
+use vars qw($Test $testbenchDir $MTIWorkDir $VeraDir $Period $Period2);
+use vars qw($Timeout $EnCovMon $GenerateMCDFile);
+use vars qw($ApbClockRatio $VeraForceCompile $VeraForceCompileMain $Usage);
+
+use vars qw($Summary $Cwd $coreKit $configDirName $ccparams_file %ccparams);
+use vars qw($simcommand $plusargs $testbench $bus @variable_array);
+use vars qw($vera_home $vera_vro_cache $vera_vmc_version @vera_include_list);
+use vars qw($mtiIncludePath);
+
+use vars qw($SystemVerilogCompile);
+use vars qw($use64bitSimulator);
+
+$main::Pgm = (basename $0);                # -- store program name
+$main::Invoke = join(' ',($main::Pgm,@ARGV));    # -- store program arguments
+$main::Version = ' $Revision: #15 $ ';    # -- set program revision number
+$main::platform = `uname`; chop $platform; # -- store the host platform
+
+# -- Extract the name of the top level module
+$main::ModName = fetchModuleName();
+
+
+
+
+
+# -- Options decoding - first define Globals and useful defaults
+# -- Whenever <coreKit> appears in these variables, the relative
+# -- path to the coreKit install directory  will be substituted
+
+
+# -- Options: What design to simulate
+
+$main::DesignName       = $main::ModName;
+$main::Netlist          = "<coreKit>/gtech/qmap/db/$DesignName.v";
+$main::SdfLevel         = "max";
+$main::RtlDir           = "<coreKit>/src";
+$main::LibDir           = "$ENV{SYNOPSYS}/packages/gtech/src_ver";
+
+# -- Options: How to simulate:
+
+$main::Simulator        = "vcs";
+$main::LogFile          = "test.log";      # in test subdirectory
+$main::ResultFile       = "test.result";   # in test subdirectory
+$main::DumpFile         = "test.vcd";      # in test subdirectory
+$main::VeraDebugLevel   = 0;
+$main::simcommand = "test.sim_command";
+# -- Options: What stimulus to provide:
+
+$main::TestbenchDir     = "<coreKit>/sim/testbench";
+$main::MTIWorkDir       = "<coreKit>/scratch";
+$main::VeraDir          = "<coreKit>/sim/vera";
+$main::Period2          = 100;
+$main::Period           = 100;
+$main::EnCovMon         = 0;
+
+# -- Options: Additional simulation parameters
+
+$main::ApbClockRatio    = 1;
+
+# -- Options: Vera Compilation 
+
+$main::VeraForceCompile     = 0;  # Do not force Vera recompilation by default
+$main::VeraForceCompileMain = 1;  # Force Vera recompilation of the main program by default
+
+$main::GenerateMCDFile = 0;
+# -- Usage help text
+
+$main::Usage = <<EndOfUsage;
+
+Usage:   $main::Pgm [ options ]
+Purpose: Run coreKit simulations.
+
+Options: Global:
+
+  --help                    Print  this  usage  message
+
+  --version                 Print  program  version  number
+
+  --verbose                 Be  verbose
+
+  --pretend                 Build  scripts  only,  don\'t  run
+
+
+Options: What design to simulate:
+
+
+  --DesignView <view>       Choose input to simulator.  Choices
+                            are:  RTL, GTECH or GateLevel 
+
+  --NetlistDir <netlist_dir> 
+                            Run netlist simulations using 
+                            directory <netlist_dir>
+
+  --NetlistFile <netlist_file> 
+                            Run simulations using netlist
+                            <netlist_file>.  Only needed for
+                            non-RTL simulations
+ 
+
+  --lib_dir <dir1>[,...]    Comma-separated list of directories
+                            containing  libraries  for  netlist
+                            ( including  gtech )    simulations
+                            Default is
+                            \"$LibDir\"
+
+  --lib_file <file1>[,...]  Comma-separated   list  of   files
+                            containing libraries  for  netlist
+                            ( including  gtech )   simulations
+
+
+Options: How to simulate:
+
+
+  --SimChoice <sim>         Run with  chosen  simulator. <sim>
+                            can be one of:  < VCS | Verilog_XL 
+                            |   MTI_Verilog  |   NC_Verilog  >
+
+  --log_file <logfile>      Direct   simulation   stdout    to
+                            <logfile>, default  is \"$LogFile\"
+
+  --result_file <resfile>   Record   simulation   result    to
+                            <resfile>, default is \"$ResultFile\"
+
+  --DumpDepth <depth>       Enable  creation  of  value-change
+                            dump  ( VCD+ )  file  to  a  depth
+                            of  < depth > ( 0 = all  signals )
+
+  --dump_file <filename>    Name    of   VCD+   output    file
+                            ( default : $DumpFile )
+
+  --coverage                Turn on coverage recording options
+
+
+Options: What stimulus to provide:
+
+
+  --test <test-obj-file>    Select  which  directory to obtain
+                            test   stimulus   files   from
+
+  --testbench <tbdir>       Select     directory    to    load
+                            testbench     from,   default   is
+                            \"$TestbenchDir\"
+
+  --vera_dir <veradir>      Look for VERA objects in <veradir>,
+                            default is \"$VeraDir\"
+
+  --ClockPeriod <period>    Simulation   clock  period (in ns).
+                            ( default: specified in testbench )
+
+  --Clock2Period <period2>  Simulation   clock  period (in ns).
+                            ( default: specified in testbench )
+
+  --TimeoutCycles <cycles>  Number  of clock cycles   until   a
+                            runaway  simulation  is  terminated
+                            Default    is    something   large,
+                            specified   in    the    individual
+                            testbench
+
+  --enable_covmon <0, 1>    Select if the AHB  and APB coverage
+                            monitors  are   enabled   for   the
+                            simulation run.
+
+
+Options: Additional simulation parameters:
+
+
+  --ClockRatio N            Specify    the     APB CLOCK_RATIO
+                            parameter value (default $ApbClockRatio)
+
+EndOfUsage
+
+
+# Options decoding - call GetOptions here
+
+GetOptions (  'help|h'                   => \$main::ShowHelp
+            , 'version|v'                => \$main::ShowVersion
+            , 'verbose|V'                => \$main::Verbose
+            , 'pretend|n'                => \$main::Pretend
+
+            , 'DesignView=s'             => \$main::RtlSim
+            , 'NetlistFile|g=s'          => \$main::Netlist
+            , 'sdf=s'                    => \$main::SdfFile
+            , 'sdf_level=s'              => \$main::SdfLevel
+            , 'RtlDir=s'                 => \$main::RtlDir
+            , 'NetlistDir=s'             => \$main::NetlistDir
+            , 'TechLib=s'                => \$main::LibDir
+            , 'TechFile=s'               => \$main::LibFile
+
+            , 'SimChoice|s=s'            => \$main::Simulator
+            , 'log_file|logfile=s'       => \$main::LogFile
+            , 'result_file|resultfile=s' => \$main::ResultFile
+            , 'DumpEnabled=i'            => \$main::DumpEnabled
+            , 'DumpDepth=i'              => \$main::DumpDepth
+            , 'coverage'                 => \$main::Coverage
+            , 'MTIIncludePath=s'         => \$main::mtiIncludePath
+            , 'vera_debug_level=i'       => \$main::VeraDebugLevel
+
+            , 'test=s'                   => \$main::Test
+            , 'testbench=s'              => \$main::TestbenchDir
+            , 'vera_dir=s'               => \$main::VeraDir
+            , 'ClockDefault=i'           => \$main::newClockDefault 
+            , 'ClockPeriod=f'            => \$main::Period
+            , 'Clock2Period=f'           => \$main::Period2
+            , 'TimeoutDefault=i'         => \$main::newTimeoutDefault
+            , 'TimeoutCycles=i'          => \$main::Timeout
+            , 'enable_covmon=i'          => \$main::EnCovMon
+            , 'GenerateMCDFile=i'        => \$main::GenerateMCDFile
+            , 'ClockRatio=i'             => \$main::ApbClockRatio
+            , 'VeraForceCompile=i'       => \$main::VeraForceCompile
+            , 'VeraForceCompileMain=i'   => \$main::VeraForceCompileMain
+            , 'test_sv=i'                => \$main::SystemVerilogCompile
+            , '64bit|64'                 => \$main::use64bitSimulator
+           ) or die "$Pgm: $Usage";
+
+if ( $main::ShowHelp )    { print STDERR $main::Usage; exit 0; }
+if ( $main::ShowVersion ) { print STDERR "$main::Pgm: version $main::Version\n"; exit 0; }
+
+if ($main::newClockDefault) {
+  $main::Period           = 100;
+}
+if ($main::RtlSim ne "GateLevel") {
+  $main::LibDir = "";
+  $main::LibFile = "";
+}
+$main::Simulator =~ tr/A-Z/a-z/;
+
+if ($main::RtlSim ne "RTL") {
+  $main::Netlist = $main::NetlistDir . "/" . $main::Netlist;
+}
+# -/ ==================================================================
+# -/
+# -/                          MAIN PROGRAM
+# -/
+# -/ ==================================================================
+
+# -/ ------------------------------------------------------
+# -/ global varables for vera compilation 
+# -/ ------------------------------------------------------
+$main::vera_home              = "";
+$main::vera_vro_cache         = "";
+$main::vera_vmc_version       = "";
+@main::vera_include_list      = "";
+
+
+# -/ ------------------------------------------------------
+# -/ 1. Sanity Checks and Preparation
+# -/ ------------------------------------------------------
+sourceLicenseCheck ("DWC-AMBA-Fabric-Source", $main::RtlSim, $main::Simulator);
+runDwVipSetup();
+
+runtestPreparation();
+
+# -/ ------------------------------------------------------
+# -/ 2. Parse cc_constants file and store in hash
+# -/ ------------------------------------------------------
+%main::ccparams = parseCcConstants($main::ccparams_file);
+
+# -/ ------------------------------------------------------
+# -/ 4. Create the simulation command file
+# -/ ------------------------------------------------------
+commonVerilogDefines($main::bus);
+
+# -/ ------------------------------------------------------
+# -/ 4.1 Add vcs specific options to the command line
+# -/ ------------------------------------------------------
+
+  open(SCF,">>$main::simcommand") or die "$main::Pgm: ERROR -  couldn't open simulation command file $main::simcommand for write\n";
+
+  #printf SCF "+dlevel=5\n";
+  #printf SCF "+cc_filename=../../src/DW_axi_gs_cc_constants.v\n";
+  #printf SCF "+low_power_support=0\n";
+  #printf SCF "+replay=0\n";
+  #printf SCF "+transactions=10000\n";
+  #printf SCF "+disable_gif_slverr=1\n";
+  #printf SCF "+disable_protocol_check=0\n";
+
+  if ($main::Simulator eq "vcs") {
+
+    printf SCF "\n";
+    printf SCF "// add options for OVA inline expansion and debug\n";
+    ##printf SCF "-ova_inline +define+EH2H_DEBUG=1 +define+DUMP_MINIMUM=1 +v2k\n";
+
+
+    if (defined $ENV{'USE_OVA_INLINE'} )
+    {
+      printf SCF "-ova_inline\n";
+    } 
+    else
+    {
+      printf SCF "// remove OVA inline expansion when environment\n";
+      printf SCF "// variable USE_OVA_INLINE is not defined\n";
+      printf SCF "// -ova_inline\n";
+    }
+    printf SCF "+define+DUMP_MINIMUM=1 +v2k\n";
+    printf SCF "\n";
+    printf SCF "// want to see all warnings, override previous settings\n";
+    printf SCF "+warn=all\n";
+
+  }
+
+  close SCF or die "$main::Pgm: ERROR - failed to close command file $main::simcommand after write\n";
+
+commonVerilogIncludes($main::bus);
+
+# -/ ------------------------------------------------------
+# -/ 5. Create vera plusarg file
+# -/ ------------------------------------------------------
+generateVeraPlusargs($main::DesignName);
+# -/ ------------------------------------------------------
+# -/ 6. Create over-ride cc_constants file
+# -/ ------------------------------------------------------
+unless ($main::DesignName eq 'DW_ahb') {
+  unless ($main::DesignName eq 'DW_ahb_h2h') {
+    unless ($main::DesignName eq 'DW_ahb_eh2h') {
+      generateCcConstants($main::DesignName);
+    }
+  }
+}
+
+# -/ ------------------------------------------------------
+# -/ 7. Vera compile
+# -/ ------------------------------------------------------
+manageMCDFile();
+compileCheckEnvironment();
+compileVera($main::Test);
+generateVrl();
+generateVshell($main::Simulator);
+
+# -/ ------------------------------------------------------
+# -/ 8. Run simulation
+# -/ ------------------------------------------------------
+runSim();
+
+# -/ ------------------------------------------------------
+# -/ 9. Postprocess - generate result logs
+# -/ ------------------------------------------------------
+postProcess();
+
+
+
+# -/ ------------------------------------------------------
+# -/ 9. clean up unless test is failed
+# -/ ------------------------------------------------------
+# -/ ------------------------------------------------------
+# -/ We don't want to use this, we will use workspacecleanup
+# -/ ------------------------------------------------------
+#
+#  if(system("grep FAILED ${main::ResultFile}"))
+#  {
+#     print STDERR "$main::Pgm: test PASSED -> removing created files\n";
+#     #system("rm -rf ./vcdplus.vpd");
+#     system("rm -rf ./vip.log");
+#     system("rm -rf ./score.log");
+#     system("rm -rf ./?biu.log");
+#     system("rm -rf ./?dump*.dat");
+#     #system("rm -rf ./test_DW_ahb_eh2h*");
+#     #system("rm -rf ./*.vro");
+#     system("rm -rf ./simv");
+#     #system("rm -rf ./simv.*");
+#     #system("rm -rf ./config.ini");
+#     #system("rm -rf ./cm.log");
+#     #system("rm -rf ../testbench/*.vro");
+#     #system("rm -rf ../testbench/test_DW_ahb_eh2h_shell.v");
+#     #system("rm -rf ../testbench/eh2h_wrapper.v");
+#     #system("rm -rf ../../scratch");
+#  } 
+#  else 
+#  {
+#     # if FAILED do nothing, keep all files for debug
+#     print STDERR "$main::Pgm: test FAILED -> keep created files\n";
+#  }

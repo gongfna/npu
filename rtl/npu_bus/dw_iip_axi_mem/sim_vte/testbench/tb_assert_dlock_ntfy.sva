@@ -1,0 +1,232 @@
+//------------------------------------------------------------------------
+//--
+//--                  (C) COPYRIGHT 2001-2011 SYNOPSYS, INC.
+//--                            ALL RIGHTS RESERVED
+//--
+//--  This software and the associated documentation are confidential and
+//--  proprietary to Synopsys, Inc.  Your use or disclosure of this
+//--  software is subject to the terms and conditions of a written
+//--  license agreement between you, or your company, and Synopsys, Inc.
+//--
+//--  The entire notice above must be reproduced on all authorized copies.
+//--
+//--  File : tb_assert_dlock_ntfy.sva
+//--  Function : Assertion coverage modules for the deadlock notification
+//--             feature of DW_axi.
+//--
+//------------------------------------------------------------------------
+
+`include "DW_axi_constants.v"
+`include "DW_axi_cc_constants.v"
+
+// Only compile coverage for Unencrypted RTL VCS simulations, if deadlock
+// notification functionality exists.
+`ifdef RTL
+`ifdef VCS
+`ifdef AXI_HAS_DLOCK_NOTIFY
+`ifdef AXI_ENCRYPT
+`else
+
+/*----------------------------------------------------------------------
+ * Coverage Points for the Deadlock Notification Outputs
+ */
+module tb_assert_dlock_ntfy_outputs 
+#(
+  parameter NM = `AXI_NUM_MASTERS,
+  parameter NS = `AXI_NUM_SLAVES,
+  parameter L2_NM = `AXI_LOG2_LCL_NM,
+  parameter MIDW = `AXI_MIDW,
+  parameter L2_NS = `AXI_LOG2_NSP1
+)
+(
+  input clk,
+  input reset_n,
+  input dlock_irq,
+  input dlock_wr,
+  input [L2_NM-1:0] dlock_mst,
+  input [MIDW-1:0] dlock_id,
+  input [L2_NS-1:0] dlock_slv
+);
+
+  covergroup cov_dlock_ntfy_outputs;
+    // 1. Deadlocks occur for all masters.
+    msts : coverpoint dlock_mst iff (dlock_irq) {
+      bins masters[] = {[0:(NM-1)]};
+      illegal_bins non_existant_mst = default;
+    }
+
+    // 2. Deadlocks occur for all slaves.
+    slvs : coverpoint dlock_slv iff (dlock_irq) {
+      bins slaves[] = {[0:NS]};
+      illegal_bins non_existant_slv = default;
+    }
+
+    // 3. Deadlocks occur for all combinations of master and slave.
+    //    Note that there will be some uncovered points here due to
+    //    master and slave visibility.
+    cross msts, slvs;
+
+    // 4. Deadlocked reads and writes occur.
+    rdwr : coverpoint dlock_wr iff (dlock_irq);
+
+    // 5. All masters have deadlocked reads and writes.
+    cross rdwr, msts;
+
+    // 6. All slaves have deadlocked reads and writes.
+    cross rdwr, slvs;
+
+    // 7. Deadlocks occur for all master ID values.
+    ids : coverpoint dlock_id iff (dlock_irq) {
+      bins mst_ids[] = {[0:(`AXI_POW2_MIDW-1)]};
+    }
+
+    // 8. Read and write deadlocks occur for all master ID values.
+    cross rdwr, ids;
+
+  endgroup
+  cov_dlock_ntfy_outputs cov_dlock_ntfy_outputs_obj = new();
+
+  always @(posedge clk) begin
+    if(reset_n) cov_dlock_ntfy_outputs_obj.sample();
+  end
+
+endmodule
+
+/*----------------------------------------------------------------------
+ * Deadlock notification coverage points which are detected internal
+ * to the idmask block.
+ */
+module tb_assert_dlock_idmask
+#(
+  parameter UIDA = 1,
+  parameter MIDW = `AXI_MIDW,
+  parameter L2_NS = `AXI_LOG2_NSP1
+)
+(
+  input clk,
+  input reset_n,
+  input [L2_NS-1:0] dlock_slv,
+  input [MIDW-1:0] dlock_id,
+  input dlock,
+  input [UIDA-1:0] slot_dlock
+);
+
+  // Detect when a new deadlock occurs.
+  reg [L2_NS-1:0] dlock_slv_r;
+  reg [MIDW-1:0] dlock_id_r;
+  reg dlock_r;
+
+  always @(posedge clk or negedge reset_n) begin : reg_dlock_PROC
+   if(~reset_n) begin
+     dlock_slv_r <= {L2_NS{1'b0}};
+     dlock_id_r <= {MIDW{1'b0}};
+     dlock_r <= 1'b0;
+   end else begin
+     dlock_slv_r <= dlock_slv;
+     dlock_id_r <= dlock_id;
+     dlock_r <= dlock;
+   end 
+  end : reg_dlock_PROC
+
+  // New deadlock is decoded as, rising edge of dlock OR change in other 
+  // dlock_* signals while dlock is asserted.
+  wire new_deadlock;
+  assign new_deadlock = (dlock & ~dlock_r)
+                        | (  (   (dlock_slv_r != dlock_slv)
+                               | (dlock_id_r != dlock_id)
+                             )
+                             & dlock
+                          );
+
+  // 1. Does a deadlock occur for each ID slot.
+  genvar slot;
+  generate
+    for(slot=0;slot<UIDA;slot=slot+1) begin : idmask_dlock
+      id_mask_slot_dlock : cover property (@(posedge clk) (new_deadlock) throughout (slot_dlock[slot] == 1'b1));
+    end
+  endgenerate
+
+  // 2. Do we get any 2 deadlocks at the same time.
+  //    i.e. slot_dlock is non zero, and not 1-hot.
+  multiple_dlocks : cover property (@(posedge clk) (new_deadlock) throughout (!($onehot(slot_dlock)) & (|slot_dlock)));
+
+endmodule
+
+
+/*----------------------------------------------------------------------
+ * Deadlock notification coverage points which are detected internal
+ * to the DW_axi_dlock_mux block.
+ */
+ module tb_assert_dlock_mux
+#(
+  parameter NM=`AXI_NUM_MASTERS,
+  parameter L2_NM = `AXI_LOG2_LCL_NM,
+  parameter MIDW = `AXI_MIDW,
+  parameter L2_NS = `AXI_LOG2_NSP1
+)
+(
+  input clk,
+  input reset_n,
+  input [NM-1:0] dlock_w,
+  input [NM-1:0] dlock_r,
+  input dlock_irq,
+  input [L2_NM-1:0] dlock_mst,
+  input [L2_NS-1:0] dlock_slv,
+  input [MIDW-1:0] dlock_id,
+  input dlock_wr
+);
+
+  // Detect when a new deadlock occurs.
+  reg [L2_NM-1:0] dlock_mst_r;
+  reg [L2_NS-1:0] dlock_slv_r;
+  reg [MIDW-1:0] dlock_id_r;
+  reg dlock_wr_r;
+  reg dlock_irq_r;
+
+  always @(posedge clk or negedge reset_n) begin : reg_dlock_PROC
+   if(~reset_n) begin
+     dlock_mst_r <= {L2_NM{1'b0}};
+     dlock_slv_r <= {L2_NS{1'b0}};
+     dlock_id_r <= {MIDW{1'b0}};
+     dlock_wr_r <= 1'b0;
+     dlock_irq_r <= 1'b0;
+   end else begin
+     dlock_mst_r <= dlock_mst;
+     dlock_slv_r <= dlock_slv;
+     dlock_id_r <= dlock_id;
+     dlock_wr_r <= dlock_wr;
+     dlock_irq_r <= dlock_irq;
+   end 
+  end : reg_dlock_PROC
+
+  // New deadlock is decoded as, rising edge of clock_irq OR change in other 
+  // dlock_* signals while dlock_irq is asserted.
+  wire new_deadlock;
+  assign new_deadlock = (dlock_irq & ~dlock_irq_r)
+                        | (  (   (dlock_mst_r != dlock_mst)
+                               | (dlock_slv_r != dlock_slv)
+                               | (dlock_id_r != dlock_id)
+                               | (dlock_wr_r != dlock_wr)
+                             )
+                             & dlock_irq
+                          );
+
+  // 1. Multple masters write deadlocked at same time as deadlock is notified.
+  //    i.e. dlock_w is non zero and not 1-hot.
+  mult_msts_dlock_w : cover property (@(posedge clk) (new_deadlock) throughout (!($onehot(dlock_w)) & (|dlock_w)));
+
+  // 2. Multple masters read deadlocked at same time as deadlock is notified.
+  mult_msts_dlock_r : cover property (@(posedge clk) (new_deadlock) throughout (!($onehot(dlock_r)) & (|dlock_r)));
+
+  // 3. Read and write t/x's deadlocked at the same time.
+  rd_wr_dlocked : cover property (@(posedge clk) (new_deadlock) throughout ((|dlock_w) & (|dlock_r)));
+
+  // 4. Back 2 back deadlocks.
+  //    New deadlock occurs when dlock_irq was asserted on the previous cycle.
+  b2b_deadlocks : cover property (@(posedge clk) (dlock_irq_r) throughout (new_deadlock));
+
+endmodule
+`endif // RTL
+`endif // VCS
+`endif // AXI_HAS_DLOCK_NOTIFY
+`endif // AXI_ENCRYPT

@@ -1,0 +1,1145 @@
+#!/opt/synopsys/coretools/K-2015.06-SP5/linux64/dware/bin/snpsperl
+
+#
+#   Id: verpp,v 1.46 2009/10/16 17:14:36 rick Exp  Copyright Synopsys
+#
+
+### verpp - Verilog conditional code preprocessor by Rick Kelly
+#
+#   This Perl script was derived from the full featured text pre-
+#   processor, 'hdlpp', and was tuned for simple conditional code
+#   processing only.  It produces condition code (based on ifdef-
+#   -else-endif clauses) on the basis of macro definitions (based
+#   on define and undef).  No macro substitution is applied to the
+#   output produced.  It was designed for use with macrocell files
+#   where a definition file (placed in the beginning of the list
+#   of input files) is used to drive conditional code production
+#   in subsequent files.
+#
+#   Preprocessor macros can also be defined on the command line with
+#   the use of the -D option (just like hdlpp and the traditional cpp
+#   preprocessors operate).
+#
+#   If an input file name ends with ".v" then an output file ending
+#   with ".vv" is produced.  If an input file does not end with ".v",
+#   then an output file ending with ".v" is produced.  This rule
+#   applies separately to each input file listed on the command line.
+#
+#   Optionally, verpp can move input files to backup file names and
+#   process the backup files to produce its output in files having
+#   the original names.  This is performed with either the '-b' or the
+#   '-n' option.  The difference between these options is that the
+#   '-b' option leaves the backup files intact after processing while
+#   the '-n' option removes the backup files (the renamed input files)
+#   after processing.
+#
+#   Verilog `include statements are not processed unless the '-pi'
+#   (Process Includes) option is used.
+#
+#   example 1:
+#    verpp definitions.vpp my_core.vpp mu_subcore1.vpp my_subcore2.vpp
+#
+#        produces the output files:
+#             definitions.v, mycore.v, my_subcore1.v & my_subcore2.v
+#
+#   example 2:
+#    verpp definitions.v my_core.v mu_subcore1.v my_subcore2.v
+#
+#        produces the output files:
+#             definitions.vv, mycore.vv, my_subcore1.vv & my_subcore2.vv
+#
+#   example 3:
+#    verpp -b definitions.v my_core.v mu_subcore1.v my_subcore2.v
+#
+#        produces the output files:
+#             definitions.v, mycore.v, my_subcore1.v & my_subcore2.v
+#        leaving original files renamed as:
+#             definitions.bak, mycore.bak, my_subcore1.bak & my_subcore2.bak
+#
+#   example 4:
+#    verpp -n definitions.v my_core.v mu_subcore1.v my_subcore2.v
+#
+#        produces the output files with the same names as input:
+#             definitions.v, mycore.v, my_subcore1.v & my_subcore2.v
+#        no backup files saved - input content lost
+
+use FileHandle;
+use strict;
+
+
+my $pgmname = "verpp";	### make it easy to change script name
+my $errstr  = "Error";	### Error message string
+my $warnstr = "Warning"; ### Warning message string
+
+my $pp_prefix = "`";	### make it easy to change the preprocessor's
+			### special 'escape' character
+
+my $rename_file = "";
+my $delete_renamed = 0;
+
+### create general command line help message
+#   (used with command line errors and full help msg)
+#
+my $hlp_msg1 = qq(
+USAGE:  $pgmname [ options ] sourcefile [ . . . sourcefileN ]
+
+Command line options supported by $pgmname
+
+ -n   		Keeps original file names (replacing the
+		original input files - content of original
+		files is lost)
+
+ -b   		Keeps original file names and a backup of
+		input files (using .bak as the backup
+		file extension)
+
+ -Dvar		Defines preprocessing variable, 'var' and
+		sets its value to 1
+
+ -Dvar=val	Defines preprocessing variable, 'var' and
+		sets its value to 'val' (although the value
+		of a variable is irrelavent for $pgmname pro-
+		cessing)
+
+ +incdir+path+  Adds 'path' to the list of paths to search
+		for included files (ignored if not processing
+		included files - via the -ai option).  More
+		than one path can be added to the search
+		path in the same +incdir option by separating
+		each with '+' (no blanks allowed).  There
+		can be multiple +incdir options with the
+		resulting search path formed from the left-
+		to-right collection of all paths in all
+		+incdir options.
+
+ -pi            Indicates that verpp should process files
+                that are included into a source files as a
+		result of `include directives.  The contents
+		of included files are processed and active
+		ifdef regions are included in the resulting
+		parent source file.  The original `include
+		directive does not appear in the output.
+
+ -i=var,list	Indicates that the specified list of prepro-
+		cessing variables (a comma separated list)
+		is to be immune from stripping of `ifdef-`else-`endif
+		clauses.  So, any `ifdef-`else-`endif structures
+		that are based on variables in the specified
+		list will still be contained in the output file.
+		Multiple instances of this option have an additive
+		effect (all variables listed in all '-i' options
+		will be immune from `ifdef-`else`endif stripping).
+		The '-i' option has a higher priority over the '-o'
+		option.  So, when '-i' options are used in
+		combination with the '-o' option, the preprocessing
+		variables subject to stripping include the
+		variables specified by the '-o' option(s) that
+		are NOT also specified by the '-i' option(s).
+		Note that the macros SYNTHESIS and SYSTEMVERILOG
+		are predefined as being immune to processing.  If
+		it is desired to have one or both of these macros
+		processed, the -pSY and/or -pSV options can be used.
+
+ -pSY       	Indicates that `ifdef-`else-`endif coding based on
+		the macro, SYNTHESIS, is to be processed.  By default,
+		the SYNTHESIS macro is immune to processing.
+
+ -pSV       	Indicates that `ifdef-`else-`endif coding based on
+		the macro, SYSTEMVERILOG, is to be processed.  By
+		default, the SYSTEMVERILOG macro is immune to
+		processing.
+
+ -o=var,list	Indicates that the specified list of prepro-
+		cessing variables (a comma separated list)
+		is the complete set of variables to be stripping
+		of `ifdef-`else-`endif clauses.  So, any `ifdef-
+		`else-`endif structures that are based on variables
+		NOT in the specified list will still be contained
+		in the output file.  Multiple instances of this
+		option have an additive effect (all variables
+		listed in all '-o' options will be included in the
+		set of preprocessing variables to be subject to
+		`ifdef-`else-`endif clause stripping).  The '-o'
+		option has a lower priority than the '-i' option.
+		So, when '-o' options are used in combination with
+		the '-i' option, the preprocessing variables
+		subject to stripping include the variables
+		specified by the '-o' option(s) that are NOT
+		also specified by the '-i' option(s).
+
+ -lni           "Line Number Invariant" mode.  This option will
+                keep the same number of lines in the output file
+		as in the original.  Lines in unused if-else
+		regions produce blank lines.  All `ifdef, `else
+		and `endif directives also produce blank lines
+		(unless subject to the -i option).  This option
+		may be useful for coverage testing over multiple
+		configurations controlled by `ifdef-`else direc-
+		tives.
+
+ -chk           "Check if-endif Block Labels" mode.  This option
+                will cause $pgmname to track the macros used in
+		each ifdef and ifndef statement and require that
+		matching endif statements have comments that
+		include the macro names that were used in the
+		matching ifdef and ifndef statements.  This check
+		is disabled when an endif construct is encountered
+		with code (other than a comment) found following
+		it on the same line.  By default (without this
+		option) checking of `ifdef and `ifndef blocks
+		is not performed.
+
+ -af=argfile    Specifies an Arguents File to be processed.  The
+                argument to this option ('argfile' in the example)
+                is used to specify the name of the file that
+                contains an arbitrary number of command line
+                arguments  The options and/or input names in
+                the file will be inserted into the list of arguments
+                on the command line in place of teh -af ooption.
+
+ -h             Prints a help message to STDERR (with no
+		other action taken).
+\n);
+
+
+### create full help message (including command line help)
+#
+my $hlp_msg = qq($hlp_msg1
+   This command produces condition code (based on `ifdef-`else-`endif
+   clauses) on the basis of macro definitions (based on `define and
+   `undef).  No macro substitution is applied to the output produced.
+   It was designed for use with macrocell files where a definition
+   file (placed in the beginning of the list of input files) is used
+   to drive conditional code production in subsequent files.
+
+   Preprocessor macros can also be defined on the command line with
+   the use of the -D option (just like hdlpp and the traditional cpp
+   preprocessors operate).
+
+   If an input file name ends with '.v' then an output file ending
+   with '.vv' is produced.  If an input file does not end with '.v',
+   then an output file ending with '.v' is produced.  This rule
+   applies separately to each input file listed on the command line.
+
+   Optionally, verpp can move input files to backup file names and
+   process the backup files to produce its output in files having
+   the original names.  This is performed with either the '-b' or the
+   '-n' option.  The difference between these options is that the
+   '-b' option leaves the backup files intact after processing while
+   the '-n' option removes the backup files (the renamed input files)
+   after processing.
+
+   Verilog `include statements are not processed unless the '-pi'
+   (Process Includes) option is used.
+
+   example 1:
+    $pgmname definitions.vpp my_core.vpp mu_subcore1.vpp my_subcore2.vpp
+
+        produces the output files:
+             definitions.v, mycore.v, my_subcore1.v & my_subcore2.v
+
+   example 2:
+    $pgmname definitions.v my_core.v mu_subcore1.v my_subcore2.v
+
+        produces the output files:
+             definitions.vv, mycore.vv, my_subcore1.vv & my_subcore2.vv
+
+   example 3:
+    $pgmname -b definitions.v my_core.v mu_subcore1.v my_subcore2.v
+
+        produces the output files:
+             definitions.v, mycore.v, my_subcore1.v & my_subcore2.v
+        leaving original files renamed as:
+             definitions.bak, mycore.bak, my_subcore1.bak & my_subcore2.bak
+
+   example 4:
+    $pgmname -n definitions.v my_core.v mu_subcore1.v my_subcore2.v
+
+        produces the output files with the same names as input:
+             definitions.v, mycore.v, my_subcore1.v & my_subcore2.v
+        no backup files saved - input content lost
+
+
+Preprocessing directives supported by $pgmname
+
+${pp_prefix}define name tokn-list	Defines the macor, 'name', which
+			may control subsequent conditional code
+			inclusion.  This directive itself is copied
+			to its preprocessor output file unchanged.
+
+${pp_prefix}undef name		Remove any definition for the symbol,
+			'name', thus possibly altering subsequent
+			conditional code production.  This directive
+			itself is copied to its preprocessor output
+			file, unchanged.
+
+${pp_prefix}ifdef name		Subsequent lines up to the matching
+			${pp_prefix}else or ${pp_prefix}endif appear in the output
+			only if 'name' has been defined,
+			either with a ${pp_prefix}define directive or a
+			-D command line option, and in the
+			absence of an intervening ${pp_prefix}undef
+			directive.  This directive does not
+			appear in the preprocessed output file
+			unless it is contained in a 'processing_off/on'
+			pragma block or the preprocessing variable that
+			controls this ifdef (i.e. 'name') has made this
+			`ifdef-`else-`endif clause immune to stripping
+			as specified by the -i command line argument or
+			through the use of the preserve_ifdefs pragma.
+
+${pp_prefix}ifndef name		Subsequent lines up to the matching
+			${pp_prefix}else or ${pp_prefix}endif appear in the output
+			only if 'name' has not been defined,
+			either with a ${pp_prefix}define directive or a
+			-D command line option, or if its
+			definition has been removed with an
+			${pp_prefix}undef directive.  This directive
+			does not appear in the preprocessed
+			output file unless it is contained in a
+			'processing_off/on' pragma block or the
+			preprocessing variable that controls this
+			ifndef (i.e. 'name') has made this
+			`ifndef-`else-`endif clause immune to stripping
+			as specified by the -i command line argument or
+			through the use of the preserve_ifdefs pragma.
+
+${pp_prefix}else			This inverts the sense of the condi-
+			tional directive otherwise in effect.
+			If the preceding condition would in-
+			dicate that lines are to be included,
+			then lines between the '${pp_prefix}else' and the
+			matching '${pp_prefix}endif' are ignored.  If the
+			preceding condition indicates that
+			lines would be ignored, subsequent lines
+			are included in the output.  This directive
+			does not appear in the preprocessed output
+			file unless it is contained in a 'processing_off/on'
+			pragma block or the preprocessing variable that
+			controls this 'else' (i.e. 'name' specified in the
+			coresponding 'ifdef' or 'ifndef') has made this
+			`ifdef-`else-`endif clause immune to stripping
+			as specified by the -i command line argument or
+			through the use of the preserve_ifdefs pragma.
+
+${pp_prefix}endif			End a section of lines begun by a condi-
+			tional directive, ${pp_prefix}ifdef or ${pp_prefix}ifndef.  Each
+			${pp_prefix}ifdef and ${pp_prefix}ifndef must have a matching
+			${pp_prefix}endif.  This directive does not
+			appear in the preprocessed output file
+			unless it is contained in a 'processing_off/on'
+			pragma block or the preprocessing variable that
+			controls this 'endif' (i.e. 'name' specified in the
+			coresponding 'ifdef' or 'ifndef') has made this
+			`ifdef-`else-`endif clause immune to stripping
+			as specified by the -i command line argument or
+			through the use of the preserve_ifdefs pragma.
+
+ // verpp-pragma  preserve_ifdefs name
+			Selectively disables the processing of only
+			`ifdef-`else-`endif structures that are based
+			on the macro specified in the argument to the
+			'preserve_ifdefs' pragma (i.e. 'name' in the
+			above example).
+
+ // verpp-pragma  process_ifdefs name
+			Selectively enables the processing of `ifdef-
+			`else-`endif structures that are based on the
+			macro specified in the argument to the
+			'process_ifdefs' pragma (i.e. 'name' in the
+			above example).  The use of 'process_ifdefs'
+			pragmas typically follow code to be preserved
+			by a 'preserve_ifdefs' pragma.
+
+ // verpp-pragma  processing_off
+			Disables the processing of `ifdef-`else-`endif
+			causing text to be passed unchanged to the
+			output until a 'processing_on' pragma is
+			reached.  The processing_off/on pragmas
+			are to be used in matched pairs starting
+			with 'processing_off' and ending with
+			'processing_on'.  The pragma comment
+			itself is never passed to the output
+			file.
+
+ // verpp-pragma  processing_on
+			Re-enables the processing of `ifdef-`else-`endif
+			directives that was suspended by an earlier
+			instance of the 'processing_off pragma.  The
+			processing_off/on pragmas are to be used in
+			matched pairs starting with 'processing_off'
+			and ending with 'processing_on'.  The pragma
+			comment itself is never passed to the output
+			file.
+);
+
+@ARGV or die $hlp_msg1;
+
+my %vars = ();
+my %immune_vars = ( "SYNTHESIS" => 1, "SYSTEMVERILOG" => 1 );
+my %only_vars = ();
+my $only_list_exists = 0;
+my $lni_mode = 0;
+my @my_args = ();
+my $chk_endifs = 0;
+my $process_includes = 0;
+my @inc_dir_list = ();
+my @file_name_hierarchy = ();
+
+&process_cmd_args( @ARGV );
+
+### Initialize global variable for if-then-else level stack
+#
+my $if_level = 0;	### starting at level zero ###
+my @out_enable = (1);	### output enabled on level zero ###
+my @else_seen = (0);
+my @elsif_state = (0);
+my @ifdef_label = ();	### stack contains the macro name in the if
+			#   which should appear as a comment on the endif
+			#   iff endif is on its own line
+
+
+my $ofp = new FileHandle;
+
+
+### Now, parse files by passing input file names to
+#   the subrountine, process_file
+#
+foreach my $infile ( @my_args ) {
+  my $outfile;
+  my $file_extn = $infile;
+  $file_extn =~ s/^.*\.//;
+
+  my $file_base = $infile;
+  $file_base =~ s/\.\w+$//;
+
+  if ( $rename_file ) {
+    my $mv_fn = "$file_base.$rename_file";
+    if (-e $mv_fn) {
+      chmod oct '0600', $mv_fn;
+      unlink $mv_fn or die "$pgmname: $errstr: Unable to remove existing intermediate file, $mv_fn.\n";
+    }
+    rename $infile, $mv_fn;
+    $outfile = $infile;
+    $infile  = $mv_fn;
+  } else {
+    if ($file_extn eq "v") {
+      $outfile = "$file_base.vv";
+    } else {
+      $outfile = "$file_base.v";
+    }
+  }
+
+  open ( $ofp, ">$outfile") or die "$pgmname: $errstr: Unable to open output file, $outfile\n";
+  &process_file ($infile);
+  close $ofp;
+
+  if ( $rename_file && $delete_renamed ) {
+    chmod oct '0600', $infile;
+    unlink $infile or die "$pgmname: $errstr: Unable to remove intermediate file, $infile.\n";
+  }
+}
+
+exit 0;
+
+
+### Subroutine: process_file
+#   processes all lines of the named file and recursively
+#   calls itself to process included files
+#
+sub process_file {
+
+    ### Use 'my' function to allow recursion
+    #
+    my ($fn) = @_;
+    my $ifp = new FileHandle;
+    my $entry_level = $if_level;	## used to make sure each file is balanced
+    my $saved_comment = "";
+    my $deferred_input = "";	## used to split up lines with multiple directives
+    my $directive_count = 0;	## counts the number of directives on a single line
+    my $out_line_count  = 0;	## used for line-number-invariant mode
+    my $pre_directive_space = "";
+    my @local_search_path;
+
+    ## Add the directory path of this file to the search path
+    #
+    if ( $fn =~ m/^(.*)\// ) {	## if the current file name has '/' in it, pick up the path
+      @local_search_path = ( $1, @inc_dir_list );
+    } else {
+      ## if there is no '/' in this file's name string
+      #  add '.' to the search path (for the current directory)
+      #
+      @local_search_path = ( ".", @inc_dir_list );
+    }
+
+    ## First, check for circular references in file hierarchy
+    #
+    foreach my $hfn ( @file_name_hierarchy ) {
+      if ( $hfn eq $fn ) {
+	my $circ_file_list = "  files include: ";
+	foreach my $cflnm ( @file_name_hierarchy ) { $circ_file_list .= " $cflnm"; }
+        die "$pgmname: $errstr: Circular reference in file inclusion chain.\n$circ_file_list $fn\n\n";
+      }
+    }
+
+    ## If no circular references found, add the current file to the file hierarchy
+    #
+    push( @file_name_hierarchy, $fn );
+
+    open ($ifp,$fn) or die "$pgmname: $errstr: Unable to open input file, $fn\n";
+    my $line_number = 0;
+
+ln: while (<$ifp>) {
+
+	### if lni mode, check in lines versus out lines
+	if ($lni_mode) {
+	  while ($out_line_count < $line_number) {
+	    print $ofp "\n";
+	    ++$out_line_count;
+	  }
+	}
+
+	### increment line number
+	++$line_number;
+ 	$directive_count = 0;
+	
+	### look for verpp pragmas
+	#
+	if ( s/^\s*\/\/\s*verpp-pragma\s+// ) {
+	  my $eof_flag = 1;
+	  s/\s+$//;
+	  if ( $_ eq "processing_off" ) {
+skp_proc:   while (<$ifp>) {
+	      ### if lni mode, check in lines versus out lines
+	      if ($lni_mode) {
+		while ($out_line_count < $line_number) {
+		  print $ofp "\n";
+		  ++$out_line_count;
+		}
+	      }
+
+	      ++$line_number;
+	      if ( m/^\s*\/\/\s*verpp-pragma\s+processing_on\s*$/ ) {
+		$eof_flag = 0;
+		last skp_proc;
+	      } else {
+		if ( $out_enable[$if_level] ) {
+		  print $ofp $_;
+		  ++$out_line_count;
+		}
+	      }
+	    }
+
+	    if ( $eof_flag ) {
+	      print STDERR "$pgmname: $errstr: LINE $line_number: $fn : End of file reached before verpp-pragma, 'processing_on' seen.\n";
+	      last ln;
+	    }
+
+	    next ln;
+	  }
+
+	  if ( $_ eq "processing_on" ) {
+	    print STDERR "$pgmname: $errstr: LINE $line_number: $fn : verpp-pragma 'processing_on' seen before 'processing_off'.  Ignored.\n";
+	    next ln;
+	  }
+
+	  ### Check for and process preserve_ifdefs pragma
+	  #
+	  if ( $_ =~ s/^preserve_ifdefs\s+// ) {
+	    if ( $_ =~ m/^\w+$/ ) {	## check for single valid macro name
+	      $immune_vars{$_} = 1;
+	    } else {
+	      print STDERR "$pgmname: $errstr: LINE $line_number: %fn : verpp-pragma 'preserve_ifdefs' has\n";
+	      if ( $_ =~ m/\s/ ) {
+		print STDERR "          too many arguments (only one macro name allowed)\n";
+	      } else {
+		print STDERR "          an illegal macro name as its argument.\n";
+	      }
+	      print STDERR "          (argument was '$_')\n";
+	    }
+	    next ln;
+	  }
+
+	  ### Check for and process process_ifdefs pragma
+	  #
+	  if ( $_ =~ s/^process_ifdefs\s+// ) {
+	    if ( $_ =~ m/^\w+$/ ) {	## check for single valid macro name
+	      if ( exists $immune_vars{$_} ) {
+		$immune_vars{$_} = 0;
+	      }
+	    } else {
+	      print STDERR "$pgmname: $errstr: LINE $line_number: %fn : verpp-pragma 'process_ifdefs' has\n";
+	      if ( $_ =~ m/\s/ ) {
+		print STDERR "          too many arguments (only one macro name allowed)\n";
+	      } else {
+		print STDERR "          an illegal macro name as its argument.\n";
+	      }
+	      print STDERR "          (argument was '$_')\n";
+	    }
+	    next ln;
+	  }
+
+	  print STDERR "$pgmname: $errstr: LINE $line_number: $fn : Unrecognized verpp-pragma, '$_'.  Ignored.\n";
+	  next ln;
+	}
+
+	### Strip any comments off (but save them so that
+	#   they can be emitted as needed)
+	if ( s/(\s*\/\/.*)$// ) {
+	  $saved_comment = $1;
+	  chomp $saved_comment;
+	}  else {
+	  $saved_comment = "";
+	}
+
+	$deferred_input = $_;
+
+more_text_to_process:
+
+	### If this point is reached due to splitting a line with multiple directives
+	#   then the variable, $deferred_input, will contain the remaining chunk of
+	#   text to be processed for the current line.
+	#
+	if ($deferred_input or $saved_comment) {
+	    $_ = $deferred_input;
+	    $deferred_input = "";
+	} else {
+	    next ln;
+	}
+
+	### At this point, the text to process is in $_ and it should be examined
+	#   for embedded preprocessing directives.  If there are embedded directives,
+	#   the input is split leaving some of the input to be deferred
+	#
+	if ( /^([^${pp_prefix}]+)(${pp_prefix}.*$)/ ) { ## first look for leading text
+	  $deferred_input = "$2";
+	  chomp $deferred_input; $deferred_input = "$deferred_input\n";
+	  $_ = $1;
+	  if ( $deferred_input =~ m/${pp_prefix}(ifdef|ifndef|else|elsif|endif)\b/ ) {
+	    $_ =~ s/(\s+)$//; 	## remove white space preceding "`"
+	    $pre_directive_space = $1;
+	  }
+	} else {
+	  if ( /^(\s*${pp_prefix})(ifdef|ifndef|elsif|undef)(\s+\w+)(.*$)/ ) { ## next look for ifdef/ifndef/elsif/undef
+	    $_ = "$1$2$3";
+	    if ($deferred_input = "$4") {
+	      chomp $deferred_input; $deferred_input = "$deferred_input\n";
+	    } else {
+	      $_ = "$_\n";
+	    }
+	  } else {
+	    if ( /^(\s*${pp_prefix})(else|endif)\b(.*$)/ ) { ## then look for else/endif
+	      $_ = "$1$2";
+	      $deferred_input = "$3";
+	      chomp $deferred_input; $deferred_input = "$deferred_input\n";
+	    } else {
+	      if ( /^(\s*${pp_prefix}define\s+\w+)(.*)$/ ) { ## now, check for define directive
+		$_ = $1;
+		$deferred_input = $2;
+		chomp $deferred_input; $deferred_input = "$deferred_input\n";
+	      } else {
+	        if ( /^\s*${pp_prefix}include\s+"\S+".*$/ ) {
+		  $deferred_input = "";
+		} else {
+		  if ( /^(\s*${pp_prefix}\w+)(.*$)/ ) { ## finally, look for any other macro processing
+		    $_ = $1;
+		    $deferred_input = $2;
+		    chomp $deferred_input; $deferred_input = "$deferred_input\n";
+		  } else {
+		    if (($directive_count == 1) && (/^\s*$/)) {
+		      next ln;
+		    } else {
+		      chomp; $_ = "$_\n";
+		    }
+		    if (($directive_count == 1) && (/^\s*\/\//)) { print " -->> shouldn't see this\n"; next ln; }
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+
+
+	if (0 and ($deferred_input =~ /^\s+$/)) {
+	  $_ = "$_$deferred_input";
+	  $deferred_input = "";
+	}
+
+	### look for prefix for preprocessing directives
+	#   (only for tokens that begin with an i, e, d or u)
+	#
+	if ( /^\s*${pp_prefix}[iedu]/ ) {
+
+	    ### detect `include and process stack values
+	    #
+	    if ( /^${pp_prefix}include\s+"([\S]+)"/ ) {
+		my $inc_file_name = $1;
+
+		if ( $process_includes ) {
+
+		  my $full_inc_file_name = $inc_file_name;
+
+		  if ( $inc_file_name =~ m/^\// ) {
+		    ## if include file specified has an absolute path
+		    #  just process it (i.e. don't check search path)
+		    &process_file( $inc_file_name );
+		  } else {
+		    ## if include file name does not have an absolute path
+		    #  scan through the search path list
+		    #
+		    my $inc_file_found = 0;
+
+		    foreach my $this_path ( @local_search_path ) {
+		      $full_inc_file_name = "$this_path/$inc_file_name";
+
+		      if ( -e $full_inc_file_name ) {
+			## if include is found, perform a recursive call
+			#
+			&process_file( $full_inc_file_name );
+			$inc_file_found = 1;
+			last;
+		      }
+		    }
+
+		    $inc_file_found or die "$pgmname: $errstr: Include file, '$inc_file_name', not found.\n";
+		  }
+		  goto more_text_to_process; ## next ln;
+	      }
+	    }
+
+
+	    ### detect `ifdef and process stack values
+	    #
+	    if ( /^${pp_prefix}ifdef\s+(\w+)/ ) {
+		my $var_name = $1;
+		$directive_count++;
+
+		$ifdef_label[ $if_level ] = $var_name;
+		$if_level = $if_level + 1;
+
+		## first check to see if the variable is listed as immune to verpp processing
+		#  (use and output enable value of -1 to indicate an if/else/endif structure
+		#  that verpp should be immune to processing)
+		#
+		if ( (exists $immune_vars{$var_name}) && $immune_vars{$var_name} ) {
+		  if ($out_enable[$if_level-1]!=0) {
+		    $out_enable[$if_level] = -1;
+		    if (s/\n/$saved_comment\n/) {
+		      $saved_comment = "";
+		      ++$out_line_count;
+		    }
+		    print $ofp "$pre_directive_space$_"; $_ = ""; $pre_directive_space = "";
+		  } else {
+		    $out_enable[$if_level] = 0;
+		  }
+		} else {
+		  if ( $only_list_exists and not (exists $only_vars{$var_name}) ) {
+		    if ($out_enable[$if_level-1]!=0) {
+		      $out_enable[$if_level] = -1;
+		      if (s/\n/$saved_comment\n/) {
+			$saved_comment = "";
+			++$out_line_count;
+		      }
+		      print $ofp "$pre_directive_space$_"; $_ = ""; $pre_directive_space = "";
+		    } else {
+		      $out_enable[$if_level] = 0;
+		    }
+		  } else {
+		    $out_enable[$if_level] = (exists $vars{$var_name} && $out_enable[$if_level-1])? 1 : 0;
+		  }
+		}
+		$else_seen[$if_level] = 0;
+		$elsif_state[$if_level] = 0;
+
+		goto more_text_to_process; ## next ln;
+	    }
+
+
+	    ### detect `ifndef and process stack values
+	    #
+	    if ( /^${pp_prefix}ifndef\s+(\w+)/ ) {
+		my $var_name = $1;
+		$directive_count++;
+
+		$ifdef_label[ $if_level ] = $var_name;
+		$if_level = $if_level + 1;
+
+		## first check to see if the variable is listed as immune to verpp processing
+		#  (use and output enable value of -1 to indicate an if/else/endif structure
+		#  that verpp should be immune to processing)
+		#
+		if ( exists $immune_vars{$var_name} ) {
+		  if ($out_enable[$if_level-1]!=0) {
+		    $out_enable[$if_level] = -1;
+		    if (s/\n/$saved_comment\n/) {
+		      $saved_comment = "";
+		      ++$out_line_count;
+		    }
+		    print $ofp "$pre_directive_space$_"; $_ = ""; $pre_directive_space = "";
+		  } else {
+		    $out_enable[$if_level] = 0;
+		  }
+		} else {
+		  if ( $only_list_exists and not (exists $only_vars{$var_name}) ) {
+		    if ($out_enable[$if_level-1]!=0) {
+		      $out_enable[$if_level] = -1;
+		      if (s/\n/$saved_comment\n/) {
+			$saved_comment = "";
+			++$out_line_count;
+		      }
+		      print $ofp "$pre_directive_space$_"; $_ = ""; $pre_directive_space = "";
+		    } else {
+		      $out_enable[$if_level] = 0;
+		    }
+		  } else {
+		    $out_enable[$if_level] = ((not exists $vars{$var_name}) && $out_enable[$if_level-1])? 1 : 0;
+		  }
+		}
+		$else_seen[$if_level] = 0;
+		$elsif_state[$if_level] = 0;
+
+		goto more_text_to_process; ## next ln;
+	    }
+
+
+	    ### detect `else and invert out_enable value
+	    #
+	    if ( /^\s*${pp_prefix}else\s*$/ ) {
+		$directive_count++;
+		if ($if_level > 0) {
+		    if ($out_enable[$if_level] < 0) {
+		      print $ofp "$pre_directive_space$_"; $pre_directive_space = "";
+		      $directive_count++;
+		    }
+
+		    if ( ! $else_seen[$if_level] ) {
+			  
+			if ( ($out_enable[$if_level] >= 0) && ($elsif_state[$if_level] == 0) ) {
+			  $out_enable[$if_level] = ((! $out_enable[$if_level]) && $out_enable[$if_level-1])? 1 : 0;
+			}
+
+			$else_seen[$if_level] = 1;
+		    } else {
+			die "$pgmname: $errstr: LINE $line_number: Syntax error - second ${pp_prefix}else for ${pp_prefix}if in file, $fn\n";
+		    }
+		} else {
+		    die "$pgmname: $errstr: LINE $line_number: ${pp_prefix}else without ${pp_prefix}if in file, $fn\n";
+		}
+		goto more_text_to_process; ## next ln;
+	    }
+
+
+	    ### detect `elsif - the cascading if statement
+	    #
+	    if ( /^${pp_prefix}elsif\s+(\w+)/ ) {
+		my $var_name = $1;
+		$directive_count++;
+		if ($if_level > 0) {	## must be inside at least one level of ifdef/ifndef
+
+		    if ($out_enable[$if_level] < 0) {
+		      print $ofp "$pre_directive_space$_"; $pre_directive_space = "";
+		      $directive_count++;
+		    }
+
+		    if ( ! $else_seen[$if_level] ) {
+			  
+			if ( $out_enable[$if_level] == 1 ) {
+			  $out_enable[$if_level] = 0;
+			  $elsif_state[$if_level] = 1;
+			} else {
+			 if ( ($out_enable[$if_level] == 0) && ($elsif_state[$if_level] == 0) ) {
+			  ## at this point, the else has been processed and it's time to
+			  #  determine the current level's out_enable - with another 'if'
+			  #  except no exception checking
+
+			      $out_enable[$if_level] = (exists $vars{$var_name} && $out_enable[$if_level-1])? 1 : 0;
+			 }
+			}
+		    } else {
+			die "$pgmname: $errstr: LINE $line_number: Syntax error - ${pp_prefix}elsif after ${pp_prefix}else for ${pp_prefix}if in file, $fn\n";
+		    }
+
+		} else {
+		    die "$pgmname: $errstr: LINE $line_number: ${pp_prefix}elsif without ${pp_prefix}if in file, $fn\n";
+		}
+		goto more_text_to_process; ## next ln;
+	    }
+
+
+	    ### detect `endif and process stack level
+	    #
+	    if ( /^\s*${pp_prefix}endif\s*$/ ) {
+		$directive_count++;
+		if ($out_enable[$if_level] < 0) {
+		  print $ofp "$pre_directive_space$_"; $pre_directive_space = "";
+		  $directive_count++;
+		}
+
+		if ( $if_level > 0 ) {
+		    $if_level = $if_level -1;
+		    my $left_overs = $deferred_input;
+		    $left_overs =~ s/^\s+//;
+
+		    if ( $chk_endifs && not $left_overs ) {
+
+		      if ( $saved_comment ) {		## label is the first token on the trail-
+		        if ( $saved_comment =~ m/\s*\/\/\s*(\w+)/ ) {	# ing comment
+			  my $match_str = $1;
+
+			  if ( $match_str ne $ifdef_label[ $if_level ] ) {
+			    print STDERR "$pgmname: $errstr: LINE $line_number: $fn : Macro name string on endif does not match\n";
+			    print STDERR "$pgmname:          corresponding ifdef or ifndef.  ifdef or ifndef used '$ifdef_label[ $if_level ]'\n";
+			    print STDERR "$pgmname:          while endif sued '$match_str'.\n";
+			  }
+
+			} else {
+			  print STDERR "$pgmname: $warnstr: LINE $line_number: $fn : Missing macro name on comment of endif to match with ifdef or ifndef\n";
+			}
+		      } else {
+			print STDERR "$pgmname: $warnstr: LINE $line_number: $fn : No comment on endif to match with ifdef or ifndef\n";
+		      }
+		    }
+		} else {
+		    die "$pgmname: $errstr: LINE $line_number:  Syntax error - ${pp_prefix}endif without matching ${pp_prefix}if, ${pp_prefix}ifdef or ${pp_prefix}ifndef in file $fn\n";
+		}
+
+		goto more_text_to_process; ## next ln;
+	    }
+
+
+	    ### detect `define and set the variable
+	    #
+	    if ( /^\s*${pp_prefix}define\s+(\w+)/ ) {
+		### only allow modification of symbol table if 
+		#   out enable is true for the current if level
+		#
+		if ( $out_enable[$if_level] ) {
+		    my $var_name = $1;
+
+		    if ( not exists $vars{$var_name} ) {
+			%vars = (%vars, $var_name, 1 );
+		    }
+		}
+	    }	## let it fall through and print via default
+
+
+	    ### detect `undef and remove variable (if it exists)
+	    #
+	    if ( /^\s*${pp_prefix}undef\s+(\w+)/ ) {
+		### only allow modification of symbol table if 
+		#   out enable is true for the current if level
+		#
+		if ( $out_enable[$if_level] ) {
+		    my $var_name = $1;
+
+		    if ( exists $vars{$var_name} ) {
+			delete $vars{$var_name};
+		    }
+		}
+	    }	## let it fall through and print via default
+
+	}
+
+
+	### process a normal input line
+	#
+	if ( $out_enable[$if_level] ) {
+
+	    ### print line
+	    #
+	    if ( s/\n/$saved_comment\n/ ) {
+	      $saved_comment = "";
+	      ++$out_line_count;
+	    }
+	    print $ofp "$_"; $_ = "";
+	} else {
+
+	    ### output disabled so, don't print and if deferred input
+	    #   is empty, kill the saved comment
+	    if ( not $deferred_input ) {
+	      $saved_comment = "";
+	    }
+	}
+	goto more_text_to_process;
+    }
+
+    ($if_level == $entry_level) or
+	die "$pgmname: $errstr: LINE EOF:  Missing ${pp_prefix}endif in file $fn\n";
+
+
+    close $ifp;
+    pop( @file_name_hierarchy );
+
+    return;
+
+} ## process_file
+
+### Subroutine process_cmd_args accepts an array of command line
+#   arguments to be processed.  Arguments that are command options
+#   are processed as they are encountered.  Arguments that are
+#   input file names are appended to the global array, @my_args
+#
+sub process_cmd_args {
+
+  my @args2process = @_;
+
+  foreach $_ ( @args2process ) {
+      
+      ### the -D option defines a preprocessor variable.
+      #   there may be multiple -D options.
+      if (s/^-D//) {
+	  
+	  if ( /=/ ) {
+	      ### if value is specified assign it to variable
+	      /(\w+)=(\S+)/;
+	      %vars = (%vars, $1, $2);
+	  } else {
+	      ### if no value specified assign variable to 1
+	      /(\w+)/;
+	      %vars = (%vars, $1, "1");
+	  }
+
+	  next;
+      }
+
+      ### the +incdir+ option adds paths to the 'search path'
+      #   for include files
+      if (s/^\+incdir\+//) {
+	  
+	  s/\+\s*$//;			## remove trailing '+'
+	  s/\/$//;			## remove last trailing '/'
+	  s/\/\+/\+/g;			## remove intermediate trailing '/'s
+	  my @new_paths = split /\+/, $_;	## split into an array
+	  @inc_dir_list = (@inc_dir_list, @new_paths);
+	  next;
+      }
+
+      ### the -pi option indicates that verpp should Process Included
+      #   files.
+      if (/^-pi$/) {
+	$process_includes = 1;
+	next;
+      }
+
+      ### the -i option defines a variables immune to the preprocessor.
+      #   there may be multiple -i options and each may contain a comma
+      #   separated list.
+      #
+      if (s/^-i=//) {
+	  
+	  ### if value is specified assign it to variable
+	  my @var_list = split /,/, $_;
+	  foreach my $immune_var ( @var_list ) {
+	    $immune_vars{$immune_var} = 1;
+	  }
+
+	  next;
+      }
+
+      ### the -pSY options removes the SYNTHESIS macro from the list
+      #   of macros that are immune from `ifdef-`else-`endif stripping
+      #
+      if (/^-pSY$/) {
+	  if (exists $immune_vars{"SYNTHESIS"}) {
+	    $immune_vars{"SYNTHESIS"} = 0;
+	  }
+	  next;
+      }
+
+      ### the -pSV options removes the SYSTEMVERILOG macro from the list
+      #   of macros that are immune from `ifdef-`else-`endif stripping
+      #
+      if (/^-pSV$/) {
+	  if (exists $immune_vars{"SYSTEMVERILOG"}) {
+	    $immune_vars{"SYSTEMVERILOG"} = 0;
+	  }
+	  next;
+      }
+
+      ### the -o option defines a variables immune to the preprocessor.
+      #   there may be multiple -i options and each may contain a comma
+      #   separated list.
+      #
+      if (s/^-o=//) {
+	  
+	  ### if value is specified assign it to variable
+	  my @var_list = split /,/, $_;
+	  foreach my $only_var ( @var_list ) {
+	    $only_vars{$only_var} = 1;
+	  }
+	  $only_list_exists = 1;
+
+	  next;
+      }
+
+      ### the -b option allows input files to be .v files
+      #   by first renaming them to .bak files and then
+      #   processing the newly named files
+      if ( /^-b$/ ) {
+	$rename_file = "bak";
+	next;
+      }
+
+      ### the -n option allows input files to be .v files
+      #   by first renaming them to .bak files and then
+      #   processing the newly named files AND deleting
+      #   the backup file after processing
+      if ( /^-n$/ ) {
+	$rename_file = "bak";
+	$delete_renamed = 1;
+	next;
+      }
+
+      ### the -lni option sets the Line Number Invariant
+      #   mode.
+      if ( /^-lni$/ ) {
+	$lni_mode = 1;
+	next;
+      }
+
+      ### the -chk option sets the "Check ifdef-endif Block Labels" mode
+      #
+      if ( /^-chk$/ ) {
+	$chk_endifs = 1;
+	next;
+      }
+
+      ### the -af option specifies a file to contain additional command
+      #   line arguments
+      #
+      if ( s/^-af=([\w\/\.\-,]+)$// ) {
+	my $argfilename = $1;
+	my $afp = new FileHandle;
+	open($afp, $argfilename) or die
+		"$pgmname: $errstr: Unable to open argument file, $argfilename, to read.\n";
+
+	## read argument file into string variable
+	my $argfilecontent = "";
+	while (<$afp>) { $argfilecontent .= $_; }
+
+	## split string into argument array
+	my @newarglist = split /\s+/, $argfilecontent;
+
+	## recursive call to process argument from file
+	&process_cmd_args( @newarglist );
+	next;
+      }
+
+      ### the -h option invokes a short help message
+      #
+      if ( /^-h$/ ) {
+	  die $hlp_msg;
+      }
+
+      ### Options other than -h, -chk, -lni, -b, -n, -o, -pSY, -pSV, -i,
+      #   -pi, +incdir+ & -D are invalid
+      #
+      not /^[-\+]/ or die "$pgmname: $errstr:  Invalid option, $_.\n$hlp_msg1";
+
+      ### Command line arguments that are not options
+      #   (i.e. don't start with '-') are copied to
+      #   @my_args
+      #
+      @my_args = (@my_args, $_);
+  }
+}

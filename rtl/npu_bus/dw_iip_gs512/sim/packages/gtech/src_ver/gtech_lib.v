@@ -1,0 +1,1 @@
+/home/mzm/amba/iip/DW_axi_gs/1.07a/sim/packages/gtech/src_ver/gtech_lib.v

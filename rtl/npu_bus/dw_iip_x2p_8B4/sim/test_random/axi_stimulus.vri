@@ -1,0 +1,277 @@
+#pragma vip(3ef39001, 64cb63dc, 00000000, 000021d9, "Jan  6 2011", "17:36:29")
+
+
+/*
+ ------------------------------------------------------------------------
+--
+--                  (C) COPYRIGHT 2001-2011 SYNOPSYS, INC.
+--                            ALL RIGHTS RESERVED
+--
+--  This software and the associated documentation are confidential and
+--  proprietary to Synopsys, Inc.  Your use or disclosure of this
+--  software is subject to the terms and conditions of a written
+--  license agreement between you, or your company, and Synopsys, Inc.
+--
+--  The entire notice above must be reproduced on all authorized copies.
+*/
+
+`include "axi_random_test.vri"
+//`define _PLAYBACK_ON_
+// the above has the class extended
+// with all the random stuff
+
+  function integer run()
+  {
+    integer enable_compare = 0; // if set will attempt to check the read data on a write/read
+                               // errors are set in test.vr can't check
+    integer xfer_cnt = 0;
+    integer max_transactions = h.m_cc.get_val("AXI_TEST_RAND_XACTNS");
+
+    repeat(10) @(posedge m_oStimPort.$aclk); // wait for the setups to finish;
+    //printf(" ---------------- Starting AXI Tests ---------------\n");
+    repeat(10) @(posedge m_oStimPort.$aclk); // wait for the setups to finish;
+    if(debug_level>0) report_buffer_config();
+    printf("\tx2p_main::Run %0d transactions\n",max_transactions);
+    all_run = 1;
+    // turning on the recorder to check gigo
+    // this will create a blank file
+`ifndef _PLAYBACK_ON_
+    xaction_rec = 0;
+    if (xaction_rec)
+    {
+      recorder_file_name = "current_recorded_run.dat";
+      rawrecorder= fopen(recorder_file_name,"w",VERBOSE);
+      fclose(rawrecorder);
+    }
+
+    low_power_enable = 1; // turn on the watchdog and the bridge activity
+
+//    flip_all_bridge();    // don't do this with the AXI Monitor enabled creates Protocol Error
+
+    fork
+      //  AXI xactions, 1=compare when possible,0 = not verbose if 1 will print xaction
+      xfer_cnt = random_looping(max_transactions,enable_compare,1);
+
+      bridge_activity_watchdog_timer(300,0);
+
+    join
+`endif
+`ifdef _PLAYBACK_ON_
+   xfer_cnt = replay_sim("recorded.dat",0,-1,1);
+`endif
+    printf(" ------------------ Tests Finished ----cycle %0d--xaction_cnt %0d---\n",
+           get_cycle(),xfer_cnt);
+   if (xaction_rec) fclose(rawrecorder);
+    low_power_enable = 0;
+  }
+
+  //-----------------------------------------------------------------
+  // www.joe - Sept 2008
+  //
+  // CRM_9000235907
+  // When the last address of an incremental transfer is targeting
+  // the last address location at the end of the APB address map
+  // the X2P is incorrectly returning an error response with the
+  // read data.
+  //
+  // This bug only occurs during read transactions. The correct
+  // data is returned but is incorrectly tagged with an SLVERR
+  // response.
+  //
+  // To replay we need to target the last address location of the
+  // last APB slave with an incremental transfer.
+  //-----------------------------------------------------------------
+  task test_crm_9000235907()
+  {
+    //---------------------------------------------------------------
+    // Target the end region of the last slave in the system with
+    // all transaction types (FIXED, INCR & WRAPPED)
+    //---------------------------------------------------------------
+
+    integer status, a, i, j;
+    integer addr_dec_val;
+    //jstokes, 12.3.2010, previously integer variable, caused problems
+    //integer slv_end_addr;
+    #define MAX_APB_ADDR_WIDTH 32
+    bit [MAX_APB_ADDR_WIDTH-1:0] slv_end_addr;
+    string  msg, xfer_msg, dir_msg;
+
+    repeat(20) @(posedge m_oStimPort.$aclk); // wait for the setups to finish;
+
+    printf("\n////////////////////////////////////////////\n");
+    printf("//\n");
+    printf("// RUNNING test_crm_9000235907\n");
+    printf("//\n");
+    printf("////////////////////////////////////////////\n\n");
+
+    // Instruct the target slave device to always generate an OK
+    // response to write and read transactions.
+    h.slv_resp_err_weight = 0;
+    h.slv_resp_ok_weight  = 100;
+
+    // Deocde to target the end region of the last APB slave
+    slv_end_addr = 0;
+    for (a=0; a<h.m_cc.get_val("X2P_NUM_APB_SLAVES"); a++)
+    {
+      if (end_paddr[a] > slv_end_addr)
+      {
+        slv_end_addr = end_paddr[a];
+      }
+    }
+
+    // Decode the address decrement value from the width
+    // of the AXI data bus.
+    case (axi_data_width)
+    {
+      8  : addr_dec_val = 1;
+      16 : addr_dec_val = 2;
+      32 : addr_dec_val = 4;
+      64 : addr_dec_val = 8;
+      128: addr_dec_val = 16;
+      256: addr_dec_val = 32;
+      512: addr_dec_val = 64;
+    }
+
+    // loop through differing transfer types in write and read direction
+    for (i=0; i<16; i++) {
+
+      // randomize the transaction attributes
+      status = randomize();
+
+      // --------------------------------------------------------------
+      // Override some random attributes to get the desired
+      // directed test case.
+
+      // The first loop of 8 will perform write transfers
+      // The second loop of 8 will perform read transfers
+      // --------------------------------------------------------------
+
+      // Override the transfer size to match the full AXI databus width
+      case (axi_data_width)
+      {
+        8  : rand_size = 0;
+        16 : rand_size = 1;
+        32 : rand_size = 2;
+        64 : rand_size = 3;
+        128: rand_size = 4;
+        256: rand_size = 5;
+        512: rand_size = 6;
+      }
+
+      // Override the write / read direction
+      // rand_xfer decode
+      // rand_xfer[0] -> 1 = write
+      // rand_xfer[1] -> 1 = read
+      // rand_xfer[2] -> 1 = check response
+      // rand_xfer[3] -> 1 = override and wait for completion
+      if (i < 8)
+      {
+        dir_msg = "WRITE";
+        rand_xfer = 4'b0101;
+      } else
+      {
+        dir_msg = "READ";
+        rand_xfer = 4'b0110;
+      }
+
+      // Override the address to hit the last location of the last
+      // APB slave.
+      // We also override the burst type and the alen attributes
+      // according to the loop index.
+      case (i)
+      {
+        0,8: // INCR 4
+        {
+          rand_addr  = slv_end_addr - (4 * addr_dec_val) + 1;
+          rand_beats = 3;
+          rand_type  = 1;
+          xfer_msg = "INCR 4";
+        }
+        1,9: // INCR 8
+        {
+          rand_addr = slv_end_addr - (8 * addr_dec_val) + 1;
+          rand_beats = 7;
+          rand_type  = 1;
+          xfer_msg = "INCR 8";
+        }
+        2,10: // INCR 16
+        {
+          rand_addr = slv_end_addr - (16 * addr_dec_val) + 1;
+          rand_beats = 15;
+          rand_type  = 1;
+          xfer_msg = "INCR 16";
+        }
+        3,11: // INCR 13
+        {
+          rand_addr = slv_end_addr - (13 * addr_dec_val) + 1;
+          rand_beats = 12;
+          rand_type  = 1;
+          xfer_msg = "INCR 13";
+        }
+        4,12: // WRAP 4
+        {
+          rand_addr = slv_end_addr - ((4 * addr_dec_val)/2) + 1;
+          rand_beats = 3;
+          rand_type  = 2;
+          xfer_msg = "WRAP 4";
+        }
+        5,13: // WRAP 8
+        {
+          rand_addr = slv_end_addr - ((8 * addr_dec_val)/2) + 1;
+          rand_beats = 7;
+          rand_type  = 2;
+          xfer_msg = "WRAP 8";
+        }
+        6,14: // WRAP 16
+        {
+          rand_addr = slv_end_addr - ((16 * addr_dec_val)/2) + 1;
+          rand_beats = 15;
+          rand_type  = 2;
+          xfer_msg = "WRAP 16";
+        }
+        7,15: // FIXED - 4 data beats
+        {
+          rand_addr = slv_end_addr - addr_dec_val + 1;
+          rand_beats = 3;
+          rand_type  = 0;
+          xfer_msg = "FIXED";
+        }
+      }
+
+      // Ensure all write strobes are enabled
+      for (j=0;j<rand_beats; j++)
+      {
+        rand_wrstrb[j] = {MAX_AXI_WSTRB_WIDTH{1'b1}};
+      }
+
+      // Send the transaction to the VIP Master
+      sprintf(msg, "Transaction %-2d : %-5s : %-7s : addr = %-8x\n",
+      i, dir_msg, xfer_msg, rand_addr);
+      printf ("[Info] : %0d : %0s", get_time(0), msg);
+
+      void = basic_xfer(0,rand_type,rand_size,rand_beats,
+                        rand_addr,rand_id,rand_xfer,
+                        rand_cache,rand_prot,0,"",0);
+    }
+
+    repeat(20) @(posedge m_oStimPort.$aclk);
+
+    // Return the error response random weights to their
+    // default values.
+    h.slv_resp_err_weight = 10;
+    h.slv_resp_ok_weight  = 90;
+
+    repeat(5) @(posedge m_oStimPort.$aclk);
+
+    printf("\n////////////////////////////////////////////\n");
+    printf("//\n");
+    printf("// FINISHED test_crm_9000235907\n");
+    printf("//\n");
+    printf("////////////////////////////////////////////\n\n");
+  }
+
+
+
+}
+
+

@@ -1,0 +1,1 @@
+set ::sHtml::reports(MemoryAddressMaps) [list {Memory Address Maps} {APB Memory Address Maps} /home/mzm/xDMA_git/coreC/dw_iip_x2p_8B4/report/address_map.html]

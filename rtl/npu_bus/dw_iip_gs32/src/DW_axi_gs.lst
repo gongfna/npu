@@ -1,0 +1,18 @@
+// component: (top level)
+// library: work
+// files:
+/home/mzm/npu_sys/coreC/dw_iip_gs32/src/DW_axi_gs_cc_constants.v
+/home/mzm/npu_sys/coreC/dw_iip_gs32/src/DW_axi_gs_constants.v
+/home/mzm/npu_sys/coreC/dw_iip_gs32/src/DW_axi_gs_bcm_params.v
+/home/mzm/npu_sys/coreC/dw_iip_gs32/src/DW_axi_gs_bcm57.v
+/home/mzm/npu_sys/coreC/dw_iip_gs32/src/DW_axi_gs_bcm06.v
+/home/mzm/npu_sys/coreC/dw_iip_gs32/src/DW_axi_gs_bcm65.v
+/home/mzm/npu_sys/coreC/dw_iip_gs32/src/DW_axi_gs_fifo.v
+/home/mzm/npu_sys/coreC/dw_iip_gs32/src/DW_axi_gs_sm.v
+/home/mzm/npu_sys/coreC/dw_iip_gs32/src/DW_axi_gs_exclusive.v
+/home/mzm/npu_sys/coreC/dw_iip_gs32/src/DW_axi_gs_req.v
+/home/mzm/npu_sys/coreC/dw_iip_gs32/src/DW_axi_gs_resp.v
+/home/mzm/npu_sys/coreC/dw_iip_gs32/src/DW_axi_gs_tl.v
+/home/mzm/npu_sys/coreC/dw_iip_gs32/src/DW_axi_gs.v
+/home/mzm/npu_sys/coreC/dw_iip_gs32/src/DW_axi_gs-undef.v
+

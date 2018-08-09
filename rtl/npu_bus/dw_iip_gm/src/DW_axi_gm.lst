@@ -1,0 +1,12 @@
+// component: (top level)
+// library: work
+// files:
+../../coreC/dw_iip_gm/src/DW_axi_gm_cc_constants.v
+../../coreC/dw_iip_gm/src/DW_axi_gm_bcm_params.v
+../../coreC/dw_iip_gm/src/DW_axi_gm_bcm57.v
+../../coreC/dw_iip_gm/src/DW_axi_gm_bcm06.v
+../../coreC/dw_iip_gm/src/DW_axi_gm_bcm65.v
+../../coreC/dw_iip_gm/src/DW_axi_gm_core.v
+../../coreC/dw_iip_gm/src/DW_axi_gm.v
+../../coreC/dw_iip_gm/src/DW_axi_gm-undef.v
+

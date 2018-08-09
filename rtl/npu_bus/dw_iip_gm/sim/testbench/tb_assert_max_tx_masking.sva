@@ -1,0 +1,195 @@
+// ---------------------------------------------------------------------
+//
+//                   (C) COPYRIGHT 2005-2011 SYNOPSYS INC.
+//                             ALL RIGHTS RESERVED
+//
+//  This software and the associated documentation are confidential and
+//  proprietary to Synopsys Inc.  Your use or disclosure of this software
+//  is subject to the terms and conditions of a written license agreement
+//  between you or your company, and Synopsys, Inc.
+//
+//  The entire notice above must be reproduced on all authorized copies.
+//
+// -------------------------------------------------------------------------
+
+`include "DW_axi_gm_cc_constants.v"
+
+// Only compile this module for vcs simlations.
+`ifdef VCS
+
+module tb_assert_max_tx_masking 
+#(
+  parameter MAX_RD = `GM_MAX_PENDTRANS_READ,
+  parameter MAX_WR = `GM_MAX_PENDTRANS_WRITE,
+  parameter L2_MAX_RD = `GM_CNT_PENDTRANS_READ_W,
+  parameter L2_MAX_WR = `GM_CNT_PENDTRANS_WRITE_W
+)
+(
+  input clk,
+  input clken,
+  input resetn,
+  input mread,
+  input mwrite,
+  input [`GM_BW-1:0] mlen,
+  input saccept,
+  input svalid,
+  input mready,
+  input slast,
+  input [2:0] sresp
+);
+
+  // Derive the clock gated clock.
+  wire gclk;
+  assign gclk = clk & clken;
+
+  // Decode when reads and writes are accepted.
+  wire w_acc;
+  assign w_acc = mwrite & saccept;
+
+  wire w_brst_acc;
+  assign w_brst_acc = w_acc & (mlen!={`GM_BW{1'b0}});
+
+  wire r_acc;
+  assign r_acc = mread & saccept;
+
+  // Asserted when a write burst is in progress.
+  reg wr_burst_act_r;
+
+  // Count number of beats left in a write t/x.
+  reg [`GM_BW-1:0] wr_beat_cnt_r;
+  always @(posedge clk or negedge resetn) begin : wr_beat_cnt_r_PROC
+    if(~resetn) begin
+      wr_beat_cnt_r <= {`GM_BW{1'b0}};
+    end else if(clken) begin
+      if(~wr_burst_act_r) begin
+        wr_beat_cnt_r <= w_brst_acc ? (mlen-1) : {`GM_BW{1'b0}};
+      end else begin
+        // Hold value when 0 is reached, new value will take when new burst is started.
+        if(wr_beat_cnt_r != {`GM_BW{1'b0}}) begin
+          wr_beat_cnt_r <= w_brst_acc ? (wr_beat_cnt_r-1) : wr_beat_cnt_r;
+        end
+      end
+    end
+  end : wr_beat_cnt_r_PROC
+
+  always @(posedge clk or negedge resetn) begin : wr_burst_act_r_PROC
+    if(~resetn) begin
+      wr_burst_act_r <= 1'b0;
+    end else if(clken) begin
+      if(~wr_burst_act_r)
+        wr_burst_act_r <= w_brst_acc;
+      else 
+        wr_burst_act_r <= ~(w_acc & (wr_beat_cnt_r=={`GM_BW{1'b0}}));
+    end
+  end : wr_burst_act_r_PROC
+
+  // Decode when reads and writes are completed.
+  wire w_cpl;
+  assign w_cpl = sresp[0] & svalid & mready;
+
+  wire r_cpl;
+  assign r_cpl = ~sresp[0] & svalid & mready & slast;
+
+  // Calculate number of outstanding writes & reads.
+  reg [L2_MAX_WR-1:0] num_act_wr_r;
+  wire                max_act_wr;
+  always @(posedge clk or negedge resetn) begin : num_act_wr_r_PROC
+    if(~resetn) begin
+      num_act_wr_r <= {L2_MAX_WR{1'b0}};
+    end else if(clken) begin
+      case({w_acc&(~wr_burst_act_r),w_cpl}) 
+        2'b00,
+        2'b11 : num_act_wr_r <= num_act_wr_r;
+        2'b10 : num_act_wr_r <= num_act_wr_r + 1;
+        2'b01 : num_act_wr_r <= num_act_wr_r - 1;
+      endcase
+    end
+  end : num_act_wr_r_PROC
+  assign max_act_wr = num_act_wr_r == MAX_WR;
+
+  reg [L2_MAX_RD-1:0] num_act_rd_r;
+  wire                max_act_rd;
+  always @(posedge clk or negedge resetn) begin : num_act_rd_r_PROC
+    if(~resetn) begin
+      num_act_rd_r <= {L2_MAX_RD{1'b0}};
+    end else if(clken) begin
+      case({r_acc,r_cpl}) 
+        2'b00,
+        2'b11 : num_act_rd_r <= num_act_rd_r;
+        2'b10 : num_act_rd_r <= num_act_rd_r + 1;
+        2'b01 : num_act_rd_r <= num_act_rd_r - 1;
+      endcase
+    end
+  end : num_act_rd_r_PROC
+  assign max_act_rd = num_act_rd_r == MAX_RD;
+
+
+  // Error assertions.
+
+  // 1. Write transaction outstanding limit is adhered to.
+  wr_outstanding_limit : assert property (
+    @(posedge clk) disable iff (~clken) (w_acc & ~wr_burst_act_r) |-> (num_act_wr_r<MAX_WR)
+  ) else 
+    $fatal("%0t FATAL, write request accepted while %0d writes outstanding (maximum of %0d writes outstanding).", $realtime, num_act_wr_r, MAX_WR);
+
+  // 2. Read transaction outstanding limit is adhered to.
+  rd_outstanding_limit : assert property (
+    @(posedge clk) disable iff (~clken) r_acc |-> (num_act_rd_r<MAX_RD)
+  ) else 
+    $fatal("%0t FATAL, read request accepted while %0d reads outstanding (maximum of %0d reads outstanding).", $realtime, num_act_rd_r, MAX_RD);
+
+  // 3 & 4. saccept goes low for 1 cycle after read or write outstanding limit is reached.
+  //    Note that once a write burst starts, saccept will stay asserted if there is buffer space available.
+  //    The GIF master is not allowed to interleave reads with write bursts.
+  saccept_low_after_max_wr : assert property (
+    @(posedge clk) disable iff (~clken) ($rose(max_act_wr) & ~wr_burst_act_r) |-> !saccept
+  ) else 
+    $fatal("%0t FATAL, saccept did not deassert 1 cycle after max. num. writes became outstanding.", $realtime);
+
+  // 4. 
+  saccept_low_after_max_rd : assert property (
+    @(posedge clk) disable iff (~clken) $rose(max_act_rd) |-> !saccept
+  ) else 
+    $fatal("%0t FATAL, saccept did not deassert 1 cycle after max. num. reads became outstanding.", $realtime);
+
+
+  // 5. saccept goes low for 1 cycle after a t/x is accepted while the read or write
+  //    outstanding t/x limit has been reached.
+  //    Note that once a write burst starts, saccept will stay asserted if there is buffer space available.
+  //    The GIF master is not allowed to interleave reads with write bursts.
+  //    
+  //    Need to disable immediately if the max amount of reads are not outstanding.
+  saccept_low_after_wtx_acc_rd_max : assert property (
+    @(posedge clk) disable iff (~max_act_rd | ~clken) ($rose(w_acc) & max_act_rd & (mlen=={`GM_BW{1'b0}})) |-> ##1 !saccept
+  ) else 
+    $fatal("%0t FATAL, saccept did not deassert 1 cycle after write t/x accepted while max. reads outstanding.", $realtime);
+
+  // Need to disable immediately if the max amount of writes are not outstanding.
+  saccept_low_after_rtx_acc_wr_max : assert property (
+    @(posedge clk) disable iff (~max_act_wr | ~clken) ($rose(r_acc) & max_act_wr) |-> ##1 !saccept 
+  ) else 
+    $fatal("%0t FATAL, saccept did not deassert 1 cycle after read t/x accepted while max. writes outstanding.", $realtime);
+
+  // 6. Check that saccept deasserts after a write burst, if the max number of read or write transactions are outstanding.
+  //    Note that once a write burst starts, saccept will stay asserted if there is buffer space available.
+  //    The GIF master is not allowed to interleave reads with write bursts.
+  saccept_low_after_wbrst_acc_rdorwr_max : assert property (
+    @(posedge clk) disable iff (~clken) ($fell(wr_burst_act_r) & (max_act_rd | max_act_wr)) |-> !saccept
+  ) else 
+    $fatal("%0t FATAL, saccept did not deassert 1 cycle after a write burst completed on request channel while max number of writes or reads outstanding.", $realtime);
+
+
+  // 7. Coverage : saccept asserts for new write in 1 cycle while read t/x limit reached.
+  // Note use of clock gated clock.
+  wr_2cyc_acc_rd_max : cover property (
+    @(posedge gclk) (max_act_rd) throughout ($rose(mwrite) & ~wr_burst_act_r) |-> ##1 saccept
+  );
+
+  // 8. Coverage : saccept asserts for read in 1 cycle while write t/x limit reached.
+  // Note use of clock gated clock.
+  rd_2cyc_acc_wr_max : cover property (
+    @(posedge gclk) (max_act_wr) throughout $rose(mread) |-> ##1 saccept
+  );
+
+endmodule
+`endif // VCS

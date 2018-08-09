@@ -1,0 +1,2 @@
+../testbench/axi/src/DW_axi_cc_constants.v
+../testbench/axi/src/axi_wrapper.v

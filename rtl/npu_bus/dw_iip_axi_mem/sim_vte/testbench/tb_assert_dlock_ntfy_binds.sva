@@ -1,0 +1,166 @@
+//------------------------------------------------------------------------
+//--
+//--                  (C) COPYRIGHT 2001-2011 SYNOPSYS, INC.
+//--                            ALL RIGHTS RESERVED
+//--
+//--  This software and the associated documentation are confidential and
+//--  proprietary to Synopsys, Inc.  Your use or disclosure of this
+//--  software is subject to the terms and conditions of a written
+//--  license agreement between you, or your company, and Synopsys, Inc.
+//--
+//--  The entire notice above must be reproduced on all authorized copies.
+//--
+//--  File : tb_assert_dlock_ntfy_binds.sva
+//--  Function : binds for modules in tb_assert_dlock_ntfy.sva
+//--
+//------------------------------------------------------------------------
+
+module tb_assert_dlock_ntfy_binds;
+
+  // Only compile coverage for Unencrypted RTL VCS simulations.
+  `ifdef RTL
+  `ifdef VCS
+  `ifdef AXI_ENCRYPT
+  `else
+
+  /*--------------------------------------------------------------------
+   * Deadlock notification port cover point binds.
+   */
+  `ifdef AXI_HAS_DLOCK_NOTIFY
+  bind test_DW_axi.U_DW_axi tb_assert_dlock_ntfy_outputs U_tb_assert_dlock_ntfy 
+  (.clk(aclk), .reset_n(aresetn), .dlock_irq(dlock_irq), .dlock_wr(dlock_wr), .dlock_mst(dlock_mst), .dlock_id(dlock_id), .dlock_slv(dlock_slv));
+  `endif
+
+  /*--------------------------------------------------------------------
+   * Coverage Module Binds
+   * - Deadlock notification signals internal to DW_axi_mp_idmask.
+   */
+  `ifdef AXI_HAS_DLOCK_NOTIFY
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m1.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M1) 
+  U_tb_assert_dlock_idmask_ar_m1 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m1.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_UWIDA_M1)
+  U_tb_assert_dlock_idmask_aw_m1 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+
+  `ifdef AXI_HAS_M2
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m2.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M2)
+  U_tb_assert_dlock_idmask_ar_m2 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m2.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M2)
+  U_tb_assert_dlock_idmask_aw_m2 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  `endif
+
+  `ifdef AXI_HAS_M3
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m3.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M3)
+  U_tb_assert_dlock_idmask_ar_m3 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m3.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M3)
+  U_tb_assert_dlock_idmask_aw_m3 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  `endif
+
+  `ifdef AXI_HAS_M4
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m4.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M4)
+  U_tb_assert_dlock_idmask_ar_m4 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m4.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M4)
+  U_tb_assert_dlock_idmask_aw_m4 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  `endif
+
+  `ifdef AXI_HAS_M5
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m5.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M5)
+  U_tb_assert_dlock_idmask_ar_m5 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m5.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M5)
+  U_tb_assert_dlock_idmask_aw_m5 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  `endif
+
+  `ifdef AXI_HAS_M6
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m6.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M6)
+  U_tb_assert_dlock_idmask_ar_m6 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m6.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M6)
+  U_tb_assert_dlock_idmask_aw_m6 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  `endif
+
+  `ifdef AXI_HAS_M7
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m7.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M7)
+  U_tb_assert_dlock_idmask_ar_m7 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m7.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M7)
+  U_tb_assert_dlock_idmask_aw_m7 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  `endif
+
+  `ifdef AXI_HAS_M8
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m8.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M8)
+  U_tb_assert_dlock_idmask_ar_m8 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m8.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M8)
+  U_tb_assert_dlock_idmask_aw_m8 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  `endif
+
+  `ifdef AXI_HAS_M9
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m9.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M9)
+  U_tb_assert_dlock_idmask_ar_m9 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m9.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M9)
+  U_tb_assert_dlock_idmask_aw_m9 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  `endif
+
+  `ifdef AXI_HAS_M10
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m10.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M10)
+  U_tb_assert_dlock_idmask_ar_m10 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m10.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M10)
+  U_tb_assert_dlock_idmask_aw_m10 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  `endif
+
+  `ifdef AXI_HAS_M11
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m11.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M11)
+  U_tb_assert_dlock_idmask_ar_m11 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m11.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M11)
+  U_tb_assert_dlock_idmask_aw_m11 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  `endif
+
+  `ifdef AXI_HAS_M12
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m12.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M12)
+  U_tb_assert_dlock_idmask_ar_m12 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m12.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M12)
+  U_tb_assert_dlock_idmask_aw_m12 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  `endif
+
+  `ifdef AXI_HAS_M13
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m13.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M13)
+  U_tb_assert_dlock_idmask_ar_m13 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m13.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M13)
+  U_tb_assert_dlock_idmask_aw_m13 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  `endif
+
+  `ifdef AXI_HAS_M14
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m14.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M14)
+  U_tb_assert_dlock_idmask_ar_m14 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m14.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M14)
+  U_tb_assert_dlock_idmask_aw_m14 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  `endif
+
+  `ifdef AXI_HAS_M15
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m15.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M15)
+  U_tb_assert_dlock_idmask_ar_m15 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m15.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M15)
+  U_tb_assert_dlock_idmask_aw_m15 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  `endif
+
+  `ifdef AXI_HAS_M16
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m16.U_AR_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M16)
+  U_tb_assert_dlock_idmask_ar_m16 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  bind test_DW_axi.U_DW_axi.U_DW_axi_mp_m16.U_AW_DW_axi_mp_addrch.U_DW_axi_mp_idmask tb_assert_dlock_idmask #(`AXI_MAX_URIDA_M16)
+  U_tb_assert_dlock_idmask_aw_m16 (.clk(aclk_i), .reset_n(aresetn_i), .dlock_slv(dlock_snum_o), .dlock_id(dlock_id_o), .dlock(dlock_o), .slot_dlock(dlock_r));
+  `endif
+
+  `endif
+
+
+  /*--------------------------------------------------------------------
+   * DW_axi_dlock_mux Module Binds
+   */
+  `ifdef AXI_HAS_DLOCK_NOTIFY
+  bind test_DW_axi.U_DW_axi.U_DW_axi_dlock_mux tb_assert_dlock_mux U_tb_assert_dlock_mux 
+  (.clk(aclk), .reset_n(aresetn), .dlock_w(dlock_w), .dlock_r(dlock_r), .dlock_irq(dlock_irq), .dlock_mst(dlock_mst) 
+   ,.dlock_slv(dlock_slv), .dlock_id(dlock_id), .dlock_wr(dlock_wr)
+  );
+  `endif
+
+  `endif // RTL
+  `endif // VCS
+  `endif // AXI_ENCRYPT (else)
+
+endmodule

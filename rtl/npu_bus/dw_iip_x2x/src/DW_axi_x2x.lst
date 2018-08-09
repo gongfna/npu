@@ -1,0 +1,43 @@
+// component: (top level)
+// library: work
+// files:
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_cc_constants.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_constants.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_bcm_params.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_bcm05.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_bcm06.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_bcm07.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_bcm21.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_bcm51.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_bcm57.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_bcm65.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_bcm66.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_fifo_s1_sf.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_busmux_ohsel.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_sd_fifo.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_w_ch_fifos.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_sp_r_rsfifos.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_sp_b_rsfifos.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_et.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_mp_a.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_mp_rb.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_mp_wfc.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_mp_w.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_mp.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_addr_alen.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_xact_ctrl.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_rs.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_sp_wfc.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_sp_a.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_r_dopack.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_r_packer.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_r_pusher.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_ue.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_sp_r.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_sp_b.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_sp_w.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_sp_w_top.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x_sp.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x.v
+../../coreC/dw_iip_x2x/src/DW_axi_x2x-undef.v
+

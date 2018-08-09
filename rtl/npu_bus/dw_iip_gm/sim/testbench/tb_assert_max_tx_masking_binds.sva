@@ -1,0 +1,30 @@
+// ---------------------------------------------------------------------
+//
+//                   (C) COPYRIGHT 2005-2011 SYNOPSYS INC.
+//                             ALL RIGHTS RESERVED
+//
+//  This software and the associated documentation are confidential and
+//  proprietary to Synopsys Inc.  Your use or disclosure of this software
+//  is subject to the terms and conditions of a written license agreement
+//  between you or your company, and Synopsys, Inc.
+//
+//  The entire notice above must be reproduced on all authorized copies.
+//
+// -------------------------------------------------------------------------
+
+module tb_assert_max_tx_masking_binds;
+
+  // Only instantiate the max tx masking assertions when the low power interface
+  // exists, and VCS is the simulator.
+  `ifdef VCS
+  `ifdef GM_HAS_LOWPWR_HS_IF
+  `ifndef GM_HAS_LOWPWR_LEGACY_IF
+  bind test_DW_axi_gm.dut tb_assert_max_tx_masking U_tb_assert_max_tx_masking
+  (.clk(aclk), .clken(gclken), .resetn(aresetn), .mread(mread), .mwrite(mwrite), .mlen(mlen), .saccept(saccept), .svalid(svalid), 
+   .mready(mready), .slast(slast), .sresp(sresp)
+  );
+  `endif // GM_HAS_LOWPWR_LEGACY_IF (not def)
+  `endif // GM_HAS_LOWPWR_HS_IF
+  `endif // VCS
+
+endmodule

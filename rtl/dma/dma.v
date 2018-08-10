@@ -175,6 +175,8 @@ module dma
   output npu_stop, 
   output o_interrupt, 
   output sys_reset_n, 
+// gs_mux select signal 1: axi_slv; 0: xDMA.
+  output axi_wr_buf_en, 
   input xclk,
   input xrst_n
 );

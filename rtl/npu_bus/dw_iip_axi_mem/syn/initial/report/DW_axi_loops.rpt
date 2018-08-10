@@ -1,0 +1,16 @@
+Information: Updating design information... (UID-85)
+ 
+****************************************
+Report : check_loops
+Design : DW_axi
+Version: K-2015.06
+Date   : Mon Aug  6 11:22:03 2018
+****************************************
+
+ # A fanout number of 1000 was used for high fanout net computations.
+
+Operating Conditions: nom_pvt   Library: dw_foundation.sldb
+Wire Load Model Mode: top
+No loops.
+
+1

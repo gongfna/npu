@@ -285,7 +285,9 @@ module npu
   wire [DW_IOB-1:0] iob1_rdata_npe; 
   // WB 
   wire [DW_WB-1:0] wb_wdata_npe; 
+  wire [512-416-1:0] wb_wdata_npe_high; 
   wire [DW_WB/8-1:0] wb_wstrb_npe; 
+  wire [512/8-DW_WB/8-1:0] wb_wstrb_npe_high; 
   wire [AW_WB-1:0] wb_addr_npe; 
   wire wb_write_npe; 
   wire wb_cs_npe; 
@@ -316,7 +318,6 @@ module npu
   wire [DW_BIASB/8-1:0] biasb_wstrb_npe; 
   wire [AW_BIASB-1:0] biasb_addr_npe; 
   wire biasb_write_npe; 
-  wire biasb_read_npe; 
   wire biasb_cs_npe; 
   wire [DW_BIASB-1:0] biasb_rdata_npe; 
    
@@ -341,6 +342,7 @@ module npu
   wire npu_stop; 
   wire o_interrupt; 
   wire sys_reset_n; 
+  wire axi_wr_buf_en;
 `GENE_WIRE_DCLA(gs1)
 `GENE_WIRE_DCLA(gs2)
 `GENE_WIRE_DCLA(gs3)
@@ -358,12 +360,13 @@ module npu
 //-assign i_line_size = 8'd19;
 //-assign i_pad_num = 2'd2;
 assign i_inst_exception=0; 
-`ifdef DEBUG_SLV
-assign i_internal_stop=1; 
-`else
-assign i_internal_stop=0; 
-`endif
+//-`ifdef DEBUG_SLV
+//-assign i_internal_stop=1; 
+//-`else
+//-assign i_internal_stop=0; 
+//-`endif
 assign npu_work_state=0; 
+assign inst_work_state=0;
 `ifdef DEBUG
 always @(posedge xclk) 
 	begin
@@ -392,7 +395,7 @@ npu_core U_NPU_CORE
 	 .o_be_stream           (i_b_stream           ), 
      .i_dma_finish          (o_dma_finish         ), 
      .o_npu_idle            (i_npu_idle           ),        
-     .o_internal_stop       (/*i_internal_stop*/      ),
+     .o_internal_stop       (i_internal_stop      ),
 `ifdef XDMA_AXI_DEBUG_SLAVE
      .i_iob_0_bramctl_en    (iob0_cs_npe), // Chip Enable Signal (optional)
      .o_iob_0_bramctl_rdata (iob0_rdata_npe), // Data Out Bus (optional)
@@ -634,6 +637,7 @@ dma U_DMA
   .npu_stop(npu_stop), 
   .o_interrupt(o_interrupt), 
   .sys_reset_n(sys_reset_n), 
+  .axi_wr_buf_en(axi_wr_buf_en), 
   .xclk(xclk), 
   .xrst_n(xrst_n) 
 );
@@ -720,8 +724,8 @@ gs_mux #(
 .DW_INSTB(128), 
 .DW_BIASB(512)
 ) 
-U_GS_MUX(
-  .i_internal_stop(i_internal_stop), 
+U_gs_mux(
+  .axi_wr_buf_en(axi_wr_buf_en), 
 // XDMA BUFFER IF
   // IOB0 
   .iob0_wdata(iob0_wdata), 
@@ -740,8 +744,8 @@ U_GS_MUX(
   .iob1_cs(iob1_cs), 
   .iob1_rdata(iob1_rdata), 
   // WB 
-  .wb_wdata(wb_wdata), 
-  .wb_wstrb(wb_wstrb), 
+  .wb_wdata({96'h0,wb_wdata}), 
+  .wb_wstrb({12'h0,wb_wstrb}), 
   .wb_addr(wb_addr), 
   .wb_write(wb_write), 
   .wb_cs(wb_cs), 
@@ -768,7 +772,6 @@ U_GS_MUX(
   .biasb_wstrb(biasb_wstrb), 
   .biasb_addr(biasb_addr), 
   .biasb_write(biasb_write), 
-  .biasb_read(biasb_read), 
   .biasb_cs(biasb_cs), 
 // NPE BUFFER IF
   // IOB0 
@@ -792,12 +795,11 @@ U_GS_MUX(
   .lstmb_wstrb_npe(lstmb_wstrb_npe), 
   .lstmb_addr_npe(lstmb_addr_npe), 
   .lstmb_write_npe(lstmb_write_npe), 
-  .lstmb_read_npe(lstmb_read_npe), 
   .lstmb_cs_npe(lstmb_cs_npe), 
   .lstmb_rdata_npe(lstmb_rdata_npe), 
   // WB 
-  .wb_wdata_npe(wb_wdata_npe), 
-  .wb_wstrb_npe(wb_wstrb_npe), 
+  .wb_wdata_npe({wb_wdata_npe_high, wb_wdata_npe}), 
+  .wb_wstrb_npe({wb_wstrb_npe_high, wb_wstrb_npe}), 
   .wb_addr_npe(wb_addr_npe), 
   .wb_write_npe(wb_write_npe), 
   .wb_cs_npe(wb_cs_npe), 
@@ -821,7 +823,6 @@ U_GS_MUX(
   .biasb_wstrb_npe(biasb_wstrb_npe), 
   .biasb_addr_npe(biasb_addr_npe), 
   .biasb_write_npe(biasb_write_npe), 
-  .biasb_read_npe(biasb_read_npe), 
   .biasb_cs_npe(biasb_cs_npe), 
   .biasb_rdata_npe(biasb_rdata_npe)
                `GENE_CONN_DCLA(gs1)

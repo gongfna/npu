@@ -78,7 +78,7 @@ module npu_core
     input          i_iob_1_bramctl_we, // Byte Enables (optional)
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 IOB_BRAM_1 ADDR" *)
     input [31:0]   i_iob_1_bramctl_be, // Byte Enables (optional)
-    input [16:0]   i_iob_1_bramctl_addr, // Address Signal (required)
+    input [11:0]   i_iob_1_bramctl_addr, // Address Signal (required)
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 IOB_BRAM_1 CLK" *)
     input          i_iob_1_bramctl_s_clk, // Clock Signal (required)
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 IOB_BRAM_1 RST" *)
@@ -98,7 +98,7 @@ module npu_core
     input          i_wb_bramctl_we, // Byte Enables (optional)
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 WB_BRAM ADDR" *)
     input  [51:0]   i_wb_bramctl_be, // Byte Enables (optional)
-    input [17:0]   i_wb_bramctl_addr, // Address Signal (required)                                  
+    input [12:0]   i_wb_bramctl_addr, // Address Signal (required)                                  
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 WB_BRAM CLK" *)
     input          i_wb_bramctl_s_clk, // Clock Signal (required)
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 WB_BRAM RST" *)
@@ -116,7 +116,7 @@ module npu_core
     input          i_wib_bramctl_we, // Byte Enables (optional)
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 WIB_BRAM ADDR" *)
     input [3:0]    i_wib_bramctl_be, // Byte Enables (optional)
-    input [11:0]   i_wib_bramctl_addr, // Address Signal (required)                
+    input [9:0]   i_wib_bramctl_addr, // Address Signal (required)                
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 WIB_BRAM CLK" *)
     input          i_wib_bramctl_s_clk, // Clock Signal (required)
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 WIB_BRAM RST" *)
@@ -144,7 +144,7 @@ module npu_core
     input           i_bias_bramctl_we, // Byte Enables (optional)
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 BIAS_BRAM ADDR" *)
     input [63:0]    i_bias_bramctl_be, // Byte Enables (optional)
-    input [13:0]   i_bias_bramctl_addr, // Address Signal (required)                
+    input [6:0]   i_bias_bramctl_addr, // Address Signal (required)                
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 BIAS_BRAM CLK" *)
     input          i_bias_bramctl_s_clk, // Clock Signal (required)
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 BIAS_BRAM RST" *)
@@ -155,9 +155,9 @@ module npu_core
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 INST_BRAM EN" *)
     input          i_inst_bramctl_en, // Chip Enable Signal (optional)
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 INST_BRAM DOUT" *)
-    output[128:0]   o_inst_bramctl_rdata, // Data Out Bus (optional)
+    output[127:0]   o_inst_bramctl_rdata, // Data Out Bus (optional)
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 INST_BRAM DIN" *)
-    input [128:0]   i_inst_bramctl_wdata, // Data In Bus (optional)
+    input [127:0]   i_inst_bramctl_wdata, // Data In Bus (optional)
     (* X_INTERFACE_INFO = "xilinx.com:interface:bram:1.0 INST_BRAM WE" *)
     input     i_inst_bramctl_we, // Byte Enables (optional)
     input  [15:0]  i_inst_bramctl_be   ,
@@ -227,7 +227,7 @@ module npu_core
     wire o_wb_rd_en;
     
     //CHN:bias_ram接口
-    wire [7:0] o_ram_addr;
+    wire [6:0] o_ram_addr;
     wire [511:0] i_ram_dat;
     wire o_ram_rd_en;
     wire i_ram_dat_vld;   
@@ -467,7 +467,7 @@ module npu_core
         .i_wb_bramctl_we   (i_wb_bramctl_we   ),
         .i_wb_bramctl_be   (i_wb_bramctl_be   ),
         .i_wb_bramctl_en   (i_wb_bramctl_en   ),
-        .i_wb_start_addr   (i_wb_start_addr   ),
+        .i_wb_start_addr   (/*i_wb_start_addr*/13'h0   ),
         .i_wb_start_addr_en(i_wb_start_addr_en)
     );
 

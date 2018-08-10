@@ -92,10 +92,60 @@ wire rready_``port;
   input  [1:0] sresp_``gs, \
   output mready_``gs,  
 
+`define X2P_INST(wd, INST, x2p) \
+wd``_DW_axi_x2p U_x2p_``INST (/*AUTOARG*/ \
+                 .awready(awready_``x2p), \
+                 .wready(wready_``x2p), \
+                 .bid(bid_``x2p), \
+                 .bresp(bresp_``x2p), \
+                 .bvalid(bvalid_``x2p), \
+                 .arready(arready_``x2p), \
+                 .rid(rid_``x2p), \
+                 .rdata(rdata_``x2p), \
+                 .rresp(rresp_``x2p), \
+                 .rlast(rlast_``x2p), \
+                 .rvalid(rvalid_``x2p), \
+                 .aclk(aclk), \
+                 .pclk(xclk), \
+                 .aresetn(aresetn), \
+                 .awid(awid_``x2p), \
+                 .awaddr(awaddr_``x2p), \
+                 .awlen(awlen_``x2p), \
+                 .awsize(awsize_``x2p), \
+                 .awburst(awburst_``x2p), \
+                 .awlock(awlock_``x2p), \
+                 .awcache(awcache_``x2p), \
+                 .awprot(awprot_``x2p), \
+                 .awvalid(awvalid_``x2p), \
+                 .wid(wid_``x2p), \
+                 .wdata(wdata_``x2p), \
+                 .wstrb(wstrb_``x2p), \
+                 .wlast(wlast_``x2p), \
+                 .wvalid(wvalid_``x2p), \
+                 .bready(bready_``x2p), \
+                 .arid(arid_``x2p), \
+                 .araddr(araddr_``x2p), \
+                 .arlen(arlen_``x2p), \
+                 .arsize(arsize_``x2p), \
+                 .arburst(arburst_``x2p), \
+                 .arlock(arlock_``x2p), \
+                 .arcache(arcache_``x2p), \
+                 .arprot(arprot_``x2p), \
+                 .arvalid(arvalid_``x2p), \
+                 .rready(rready_``x2p), \
+                 .psel_s0(psel), \
+                 .paddr(paddr), \
+                 .penable(penable), \
+                 .pwdata(pwdata), \
+                 .pwrite(pwrite), \
+                 .presetn(xrst_n), \
+                 .prdata_s0(prdata) \
+                 ); 
+
 `define GS_INST(wd, INST, gs) \
 wire gclken_``gs; \
 assign gclken_``gs= 1'b1; \
-``wd``_DW_axi_gs U_gs_``INST (/*AUTOARG*/ \
+wd``_DW_axi_gs U_gs_``INST (/*AUTOARG*/ \
                  .awready(awready_``gs), \
                  .wready(wready_``gs), \
                  .bid(bid_``gs), \
@@ -152,7 +202,7 @@ assign gclken_``gs= 1'b1; \
                  );
 
 `define X2X_INST(wd, port, gs) \
-``wd``_DW_axi_x2x U_X2X_``port( \
+wd``_DW_axi_x2x U_X2X_``port( \
                    .aclk_m(aclk) \
                    ,.aresetn_m(aresetn) \
                    ,.awvalid_m(awvalid_``port) \
@@ -294,12 +344,79 @@ module npu_bus(
   `GENE_IO_DCLA(`GS_DW_gs5, gs5)
   `GENE_IO_DCLA(`GS_DW_gs6, gs6)
   `GENE_IO_DCLA(`GS_DW_gs7, gs7)
+// APB 
+  output [31:0] paddr, 
+  output [31:0] pwdata, 
+  output pwrite, 
+  output psel, 
+  output penable, 
+  input [31:0] prdata, 
+  
 //
   input aclk,  
   input aresetn, 
   input xclk, 
   input xrst_n
 );
+
+//-wire [31:0] paddr;
+//-wire [31:0] pwdata;
+//-wire pwrite;
+//-wire psel;
+//-wire penable;
+//-wire [31:0] prdata;
+
+  // Default Slave Port Signals
+
+  // Default slave write address channel
+
+  wire [`AXI_SIDW-1:0] dbg_awid_s0;
+  wire [`AXI_AW-1:0]   dbg_awaddr_s0;
+  wire [`AXI_BLW-1:0]  dbg_awlen_s0;
+  wire [`AXI_BSW-1:0]	dbg_awsize_s0;
+  wire [`AXI_BTW-1:0]	dbg_awburst_s0;
+  wire [`AXI_LTW-1:0]	dbg_awlock_s0;
+  wire [`AXI_CTW-1:0] 	dbg_awcache_s0;
+  wire [`AXI_PTW-1:0]	dbg_awprot_s0;
+  wire                  dbg_awvalid_s0;
+  wire                  dbg_awready_s0;
+
+  // Default slave write data channel
+
+  wire [`AXI_SIDW-1:0]   dbg_wid_s0;
+  wire [`AXI_DW-1:0]     dbg_wdata_s0;
+  wire [`AXI_SW-1:0]     dbg_wstrb_s0;
+  wire                    dbg_wlast_s0;
+  wire                    dbg_wvalid_s0;
+  wire                    dbg_wready_s0;
+
+  // Default Slave write burst response channel
+
+  wire [`AXI_SIDW-1:0]   dbg_bid_s0;
+  wire [`AXI_BRW-1:0]    dbg_bresp_s0;
+  wire                    dbg_bvalid_s0;
+  wire                    dbg_bready_s0;
+
+  // Default slave read address channel
+
+  wire [`AXI_SIDW-1:0] dbg_arid_s0;
+  wire [`AXI_AW-1:0]   dbg_araddr_s0;
+  wire [`AXI_BLW-1:0]  dbg_arlen_s0;
+  wire [`AXI_BSW-1:0]  dbg_arsize_s0;
+  wire [`AXI_BTW-1:0]  dbg_arburst_s0;
+  wire [`AXI_LTW-1:0]  dbg_arlock_s0;
+  wire [`AXI_CTW-1:0]  dbg_arcache_s0;
+  wire [`AXI_PTW-1:0]  dbg_arprot_s0;
+  wire                  dbg_arvalid_s0;
+  wire                  dbg_arready_s0;
+
+  // Default slave read data channel
+  wire [`AXI_SIDW-1:0] dbg_rid_s0;
+  wire [`AXI_DW-1:0]   dbg_rdata_s0;
+  wire [`AXI_RRW-1:0]  dbg_rresp_s0;
+  wire                  dbg_rvalid_s0;
+  wire                  dbg_rlast_s0;
+  wire                  dbg_rready_s0;
 
 `MEM_AXI_WIRE_DCLA(s1)
 `MEM_AXI_WIRE_DCLA(s2)
@@ -308,6 +425,7 @@ module npu_bus(
 `MEM_AXI_WIRE_DCLA(s5)
 `MEM_AXI_WIRE_DCLA(s6)
 `MEM_AXI_WIRE_DCLA(s7)
+`MEM_AXI_WIRE_DCLA(s8)
 
 `GS_AXI_WIRE_DCLA(`GS_DW_gs1, gs1)
 `GS_AXI_WIRE_DCLA(`GS_DW_gs2, gs2)
@@ -316,22 +434,25 @@ module npu_bus(
 `GS_AXI_WIRE_DCLA(`GS_DW_gs5, gs5)
 `GS_AXI_WIRE_DCLA(`GS_DW_gs6, gs6)
 `GS_AXI_WIRE_DCLA(`GS_DW_gs7, gs7)
+`GS_AXI_WIRE_DCLA(32, x2p)
 
 `X2X_INST(x256, s1, gs1)
 `X2X_INST(x256, s2, gs2)
-`X2X_INST(x256, s3, gs3)
+`X2X_INST(x32, s3, gs3)
 `X2X_INST(x512, s4, gs4)
 `X2X_INST(x32,  s5, gs5)
 `X2X_INST(x512, s6, gs6)
 `X2X_INST(x128, s7, gs7)
+`X2X_INST(x32, s8, x2p)
 
 `GS_INST(g256, IOB0,  gs1) 
 `GS_INST(g256, IOB1,  gs2) 
-`GS_INST(g256, WB256, gs3) 
+`GS_INST(g32, LSTMB,  gs3) 
 `GS_INST(g512, WB416, gs4) 
 `GS_INST(g32,  WIB,   gs5) 
 `GS_INST(g512, BIAS,  gs6) 
 `GS_INST(g128, INST,  gs7) 
+`X2P_INST(x32, xdma, x2p) 
 
 DW_axi U_axi_mem (
                .aclk(aclk) 
@@ -664,6 +785,47 @@ DW_axi U_axi_mem (
                ,.rresp_s7(rresp_s7)
                ,.rlast_s7(rlast_s7)
                ,.rready_s7(rready_s7)
+               // Write Address Channel from Slave8
+               ,.awvalid_s8(awvalid_s8)
+               ,.awaddr_s8(awaddr_s8)
+               ,.awid_s8(awid_s8)
+               ,.awlen_s8(awlen_s8)
+               ,.awsize_s8(awsize_s8)
+               ,.awburst_s8(awburst_s8)
+               ,.awlock_s8(awlock_s8)
+               ,.awcache_s8(awcache_s8)
+               ,.awprot_s8(awprot_s8)
+               ,.awready_s8(awready_s8)
+               // Write Data Channel from Slave8
+               ,.wvalid_s8(wvalid_s8)
+               ,.wid_s8(wid_s8)
+               ,.wdata_s8(wdata_s8)
+               ,.wstrb_s8(wstrb_s8)
+               ,.wlast_s8(wlast_s8)
+               ,.wready_s8(wready_s8)
+               // Write Response Channel from Slave8
+               ,.bvalid_s8(bvalid_s8)
+               ,.bid_s8(bid_s8)
+               ,.bresp_s8(bresp_s8)
+               ,.bready_s8(bready_s8)
+               // Read Address Channel from Slave8
+               ,.arvalid_s8(arvalid_s8)
+               ,.arid_s8(arid_s8)
+               ,.araddr_s8(araddr_s8)
+               ,.arlen_s8(arlen_s8)
+               ,.arsize_s8(arsize_s8)
+               ,.arburst_s8(arburst_s8)
+               ,.arlock_s8(arlock_s8)
+               ,.arcache_s8(arcache_s8)
+               ,.arprot_s8(arprot_s8)
+               ,.arready_s8(arready_s8)
+               // Read Data Channel from Slave8
+               ,.rvalid_s8(rvalid_s8)
+               ,.rid_s8(rid_s8)
+               ,.rdata_s8(rdata_s8)
+               ,.rresp_s8(rresp_s8)
+               ,.rlast_s8(rlast_s8)
+               ,.rready_s8(rready_s8)
                ,.// Default Slave Port Signals
                // Default slave write address channel
                dbg_awid_s0(dbg_awid_s0)

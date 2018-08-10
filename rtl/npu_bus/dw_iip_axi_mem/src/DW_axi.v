@@ -352,6 +352,47 @@ module DW_axi (
                ,rresp_s7
                ,rlast_s7
                ,rready_s7
+               // Write Address Channel from Slave8
+               ,awvalid_s8
+               ,awaddr_s8
+               ,awid_s8
+               ,awlen_s8
+               ,awsize_s8
+               ,awburst_s8
+               ,awlock_s8
+               ,awcache_s8
+               ,awprot_s8
+               ,awready_s8
+               // Write Data Channel from Slave8
+               ,wvalid_s8
+               ,wid_s8
+               ,wdata_s8
+               ,wstrb_s8
+               ,wlast_s8
+               ,wready_s8
+               // Write Response Channel from Slave8
+               ,bvalid_s8
+               ,bid_s8
+               ,bresp_s8
+               ,bready_s8
+               // Read Address Channel from Slave8
+               ,arvalid_s8
+               ,arid_s8
+               ,araddr_s8
+               ,arlen_s8
+               ,arsize_s8
+               ,arburst_s8
+               ,arlock_s8
+               ,arcache_s8
+               ,arprot_s8
+               ,arready_s8
+               // Read Data Channel from Slave8
+               ,rvalid_s8
+               ,rid_s8
+               ,rdata_s8
+               ,rresp_s8
+               ,rlast_s8
+               ,rready_s8
                ,// Default Slave Port Signals
                // Default slave write address channel
                dbg_awid_s0
@@ -1044,16 +1085,57 @@ module DW_axi (
   output                      rready_s7;
 
 
+// Write Address Channel from Slave8
+  output                      awvalid_s8;
+  output [`AXI_AW-1:0]        awaddr_s8;
 
+  output [`AXI_SIDW-1:0]     awid_s8;
 
+  output [`AXI_BLW-1:0]       awlen_s8;
+  output [`AXI_BSW-1:0]       awsize_s8;
+  output [`AXI_BTW-1:0]       awburst_s8;
+  output [`AXI_LTW-1:0]       awlock_s8;
+  output [`AXI_CTW-1:0]       awcache_s8;
+  output [`AXI_PTW-1:0]       awprot_s8;
+  input                       awready_s8;
+// Write Data Channel from Slave8
+  output                      wvalid_s8;
 
+  output [`AXI_SIDW-1:0]     wid_s8;
 
+  output [`AXI_DW-1:0]        wdata_s8;
+  output [`AXI_SW-1:0]        wstrb_s8;
+  output                      wlast_s8;
+  input                       wready_s8;
+// Write Response Channel from Slave8
+  input                       bvalid_s8;
 
+  input  [`AXI_SIDW-1:0]     bid_s8;
 
+  input  [`AXI_BRW-1:0]       bresp_s8;
+  output                      bready_s8;
+// Read Address Channel from Slave8
+  output                      arvalid_s8;
 
+  output [`AXI_SIDW-1:0]     arid_s8;
 
+  output [`AXI_AW-1:0]        araddr_s8;
+  output [`AXI_BLW-1:0]       arlen_s8;
+  output [`AXI_BSW-1:0]       arsize_s8;
+  output [`AXI_BTW-1:0]       arburst_s8;
+  output [`AXI_LTW-1:0]       arlock_s8;
+  output [`AXI_CTW-1:0]       arcache_s8;
+  output [`AXI_PTW-1:0]       arprot_s8;
+  input                       arready_s8;
+// Read Data Channel from Slave8
+  input                       rvalid_s8;
 
+  input  [`AXI_SIDW-1:0]     rid_s8;
 
+  input  [`AXI_DW-1:0]        rdata_s8;
+  input                       rlast_s8;
+  input  [`AXI_RRW-1:0]       rresp_s8;
+  output                      rready_s8;
 
 
 
@@ -1518,6 +1600,45 @@ module DW_axi (
   wire                                            b_shrd_ch_req_s7;
   wire [`AXI_B_PYLD_M_W-1:0]                sp_bpayload_s7;
   wire                                       wcpl_tx_s7;
+  wire                                      arready_s8;
+  wire                                      arvalid_s8;
+  wire [`AXI_AR_PYLD_S_W-1:0]               arpayload_s8;
+  wire [`AXI_AR_S8_NMV-1:0]                    bus_arvalid_s8;
+  wire [(`AXI_AR_S8_NMV*`AXI_AR_PYLD_S_W)-1:0] bus_arpayload_s8;
+  wire [`AXI_AR_S8_NMV-1:0]               bus_sp_arready_s8;
+  wire                                       rcpl_tx_s8;
+ 
+  wire                                      rvalid_s8;
+  wire [`AXI_R_PYLD_S_W-1:0]                rpayload_s8;
+  wire                                      rready_s8;
+  wire [`AXI_NMV_S8-1:0]                    bus_rready_s8;
+  wire [`AXI_NMV_S8-1:0]                    sp_rvalid_s8;
+  wire                                            r_shrd_ch_req_s8;
+  wire [`AXI_R_PYLD_M_W-1:0]                sp_rpayload_s8;
+ 
+  wire                                      awready_s8;
+  wire                                      awvalid_s8;
+  wire [`AXI_AW_PYLD_S_W-1:0]               awpayload_s8;
+  wire [`AXI_AW_S8_NMV-1:0]                    bus_awvalid_s8;
+  wire [(`AXI_AW_S8_NMV*`AXI_AW_PYLD_S_W)-1:0] bus_awpayload_s8;
+  wire [`AXI_AW_S8_NMV-1:0]               bus_sp_awready_s8;
+  wire                                                aw_shrd_lyr_granted_s8;
+ 
+  wire                                      wready_s8;
+  wire                                      wvalid_s8;
+  wire [`AXI_W_PYLD_S_W-1:0]                wpayload_s8;
+  wire [`AXI_W_S8_NMV-1:0]                    bus_wvalid_s8;
+  wire [(`AXI_W_S8_NMV*`AXI_W_PYLD_S_W)-1:0]  bus_wpayload_s8;
+  wire [`AXI_W_S8_NMV-1:0]               bus_sp_wready_s8;
+ 
+  wire                                      bvalid_s8;
+  wire [`AXI_B_PYLD_S_W-1:0]               bpayload_s8;
+  wire                                      bready_s8;
+  wire [`AXI_NMV_S8-1:0]                    bus_bready_s8;
+  wire [`AXI_NMV_S8-1:0]                    sp_bvalid_s8;
+  wire                                            b_shrd_ch_req_s8;
+  wire [`AXI_B_PYLD_M_W-1:0]                sp_bpayload_s8;
+  wire                                       wcpl_tx_s8;
   wire                                      arvalid_m1;
   wire [`AXI_AR_PYLD_M_W-1:0]               arpayload_m1;
   wire                                      arready_m1;
@@ -1893,6 +2014,21 @@ module DW_axi (
     wire [`AXI_W_PYLD_S_W-1:0]               wpayload_s7_m1;
     wire                                      bvalid_s7_m1;
     wire                                      bready_s7_m1;
+    wire [`AXI_R_PYLD_M_W-1:0]               rpayload_s8_m1;
+    wire [`AXI_B_PYLD_M_W-1:0]               bpayload_s8_m1;
+    wire                                      arready_s8_m1;
+    wire                                      arvalid_s8_m1;
+    wire [`AXI_AR_PYLD_S_W-1:0]               arpayload_s8_m1;
+    wire                                      rvalid_s8_m1;
+    wire                                      rready_s8_m1;
+    wire                                      awready_s8_m1;
+    wire                                      awvalid_s8_m1;
+    wire [`AXI_AW_PYLD_S_W-1:0]               awpayload_s8_m1;
+    wire                                      wready_s8_m1;
+    wire                                      wvalid_s8_m1;
+    wire [`AXI_W_PYLD_S_W-1:0]               wpayload_s8_m1;
+    wire                                      bvalid_s8_m1;
+    wire                                      bready_s8_m1;
     wire                                  blank_arready_s0;
     wire                                  blank_arvalid_s0;
     wire                                  blank_arpayload_s0;
@@ -2029,6 +2165,23 @@ module DW_axi (
     wire                                  blank_bready_s7;
     wire                                  blank_arlocktx_s7;
     wire                                  blank_awlocktx_s7;
+    wire                                  blank_arready_s8;
+    wire                                  blank_arvalid_s8;
+    wire                                  blank_arpayload_s8;
+    wire                                  blank_rvalid_s8;
+    wire                                  blank_rpayload_s8;
+    wire                                  blank_rready_s8;
+    wire                                  blank_awready_s8;
+    wire                                  blank_awvalid_s8;
+    wire                                  blank_awpayload_s8;
+    wire                                  blank_wready_s8;
+    wire                                  blank_wvalid_s8;
+    wire                                  blank_wpayload_s8;
+    wire                                  blank_bvalid_s8;
+    wire                                  blank_bpayload_s8;
+    wire                                  blank_bready_s8;
+    wire                                  blank_arlocktx_s8;
+    wire                                  blank_awlocktx_s8;
     wire                                  blank_arvalid_m1;
     wire                                  blank_arready_m1;
     wire                                  blank_arpayload_m1;
@@ -2920,6 +3073,12 @@ module DW_axi (
  
   wire [`AXI_MAX_NUM_USR_MSTS-1:0] issued_wtx_mst_sys_oh_s7; 
   wire issued_wtx_mst_oh_dummy1_s7; 
+  wire [`AXI_AW_S8_NMV-1:0] issued_wtx_mst_oh_o_s8; 
+  wire [`AXI_NMV_S8-1:0] issued_wtx_mst_oh_i_s8; 
+  wire [`AXI_NMV_S8:0] issued_wtx_mst_oh_i_eb_s8; 
+ 
+  wire [`AXI_MAX_NUM_USR_MSTS-1:0] issued_wtx_mst_sys_oh_s8; 
+  wire issued_wtx_mst_oh_dummy1_s8; 
 
   // R CHANNEL SHARED LAYER SIGNALS
 
@@ -3286,6 +3445,7 @@ module DW_axi (
 // Connect slave port wires to per master port wires.  
 wire blank_aw_shrd_lyr_granted_m1_s_bus;
   assign {blank_aw_shrd_lyr_granted_m1_s_bus, aw_shrd_lyr_granted_m1_s_bus} = {1'b0
+  , aw_shrd_lyr_granted_s8
   , aw_shrd_lyr_granted_s7
   , aw_shrd_lyr_granted_s6
   , aw_shrd_lyr_granted_s5
@@ -3302,6 +3462,7 @@ wire blank_aw_shrd_lyr_granted_m1_s_bus;
 // all slaves.
 wire blank_issued_wtx_shrd_sys_m1_s_bus;
   assign {blank_issued_wtx_shrd_sys_m1_s_bus, issued_wtx_shrd_sys_m1_s_bus} = {1'b0
+  , (`AXI_S8_ON_AW_SHARED_VAL ? issued_wtx_shrd_sys_m1_s8 : 1'b0)
   , (`AXI_S7_ON_AW_SHARED_VAL ? issued_wtx_shrd_sys_m1_s7 : 1'b0)
   , (`AXI_S6_ON_AW_SHARED_VAL ? issued_wtx_shrd_sys_m1_s6 : 1'b0)
   , (`AXI_S5_ON_AW_SHARED_VAL ? issued_wtx_shrd_sys_m1_s5 : 1'b0)
@@ -3319,6 +3480,7 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 // --------------------------------------------------  
 // Connect slave port wires to per master port wires.  
   assign {blank_rvalid_m1, bus_rvalid_m1} = {1'b0
+      ,rvalid_s8_m1
       ,rvalid_s7_m1
       ,rvalid_s6_m1
       ,rvalid_s5_m1
@@ -3386,8 +3548,16 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
  } = {1'b0, sp_rvalid_s7}; 
 
 // --------------------------------------------------  
+// Connect slave port output signals, to individual    
+// per master port signals.                            
+  assign {blank_rvalid_s8 
+  , rvalid_s8_m1
+ } = {1'b0, sp_rvalid_s8}; 
+
+// --------------------------------------------------  
 // Connect slave port wires to per master port wires.  
   assign {blank_bvalid_m1, bus_bvalid_m1} = {1'b0
+      ,bvalid_s8_m1
       ,bvalid_s7_m1
       ,bvalid_s6_m1
       ,bvalid_s5_m1
@@ -3455,8 +3625,16 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
  } = {1'b0, sp_bvalid_s7}; 
 
 // --------------------------------------------------  
+// Connect slave port output signals, to individual    
+// per master port signals.                            
+  assign {blank_bvalid_s8 
+  , bvalid_s8_m1
+ } = {1'b0, sp_bvalid_s8}; 
+
+// --------------------------------------------------  
 // Connect slave port wires to per master port wires.  
   assign {blank_arready_m1, bus_arready_m1} = {1'b0
+      ,(`AXI_AR_LAYER_S8_M1 ? arready_shrd_sp_m1 : arready_s8_m1)
       ,(`AXI_AR_LAYER_S7_M1 ? arready_shrd_sp_m1 : arready_s7_m1)
       ,(`AXI_AR_LAYER_S6_M1 ? arready_shrd_sp_m1 : arready_s6_m1)
       ,(`AXI_AR_LAYER_S5_M1 ? arready_shrd_sp_m1 : arready_s5_m1)
@@ -3524,8 +3702,16 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
  } = {1'b0, bus_sp_arready_s7}; 
 
 // --------------------------------------------------  
+// Connect slave port output signals, to individual    
+// per master port signals.                            
+  assign {blank_arready_s8 
+    , arready_s8_m1
+ } = {1'b0, bus_sp_arready_s8}; 
+
+// --------------------------------------------------  
 // Connect slave port wires to per master port wires.  
   assign {blank_awready_m1, bus_awready_m1} = {1'b0
+      ,(`AXI_AW_LAYER_S8_M1 ? awready_shrd_sp_m1 : awready_s8_m1)
       ,(`AXI_AW_LAYER_S7_M1 ? awready_shrd_sp_m1 : awready_s7_m1)
       ,(`AXI_AW_LAYER_S6_M1 ? awready_shrd_sp_m1 : awready_s6_m1)
       ,(`AXI_AW_LAYER_S5_M1 ? awready_shrd_sp_m1 : awready_s5_m1)
@@ -3593,8 +3779,16 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
  } = {1'b0, bus_sp_awready_s7}; 
 
 // --------------------------------------------------  
+// Connect slave port output signals, to individual    
+// per master port signals.                            
+  assign {blank_awready_s8 
+    , awready_s8_m1
+ } = {1'b0, bus_sp_awready_s8}; 
+
+// --------------------------------------------------  
 // Connect slave port wires to per master port wires.  
   assign {blank_wready_m1, bus_wready_m1} = {1'b0
+      ,(`AXI_W_LAYER_S8_M1 ? wready_shrd_sp_m1 : wready_s8_m1)
       ,(`AXI_W_LAYER_S7_M1 ? wready_shrd_sp_m1 : wready_s7_m1)
       ,(`AXI_W_LAYER_S6_M1 ? wready_shrd_sp_m1 : wready_s6_m1)
       ,(`AXI_W_LAYER_S5_M1 ? wready_shrd_sp_m1 : wready_s5_m1)
@@ -3660,6 +3854,13 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
   assign {blank_wready_s7 
     , wready_s7_m1
  } = {1'b0, bus_sp_wready_s7}; 
+
+// --------------------------------------------------  
+// Connect slave port output signals, to individual    
+// per master port signals.                            
+  assign {blank_wready_s8 
+    , wready_s8_m1
+ } = {1'b0, bus_sp_wready_s8}; 
  
 // --------------------------------------------------  
 // Connect slave port wires to per master port wires.  
@@ -3668,6 +3869,7 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 // ports, they will strip off extra bits as required.
   wire dummy_bus_rpayload_m1;
   assign {dummy_bus_rpayload_m1, bus_rpayload_m1} = { 1'b0
+    , rpayload_s8_m1
     , rpayload_s7_m1
     , rpayload_s6_m1
     , rpayload_s5_m1
@@ -3740,6 +3942,12 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
   assign {blank_rpayload_s7 
     , rpayload_s7_m1
  } = {1'b0, {`AXI_NUM_MASTERS{sp_rpayload_s7}}}; 
+// --------------------------------------------------  
+// Connect slave port output signals, to individual    
+// per master port signals.                            
+  assign {blank_rpayload_s8 
+    , rpayload_s8_m1
+ } = {1'b0, {`AXI_NUM_MASTERS{sp_rpayload_s8}}}; 
  
 // --------------------------------------------------  
 // Connect slave port wires to per master port wires.  
@@ -3748,6 +3956,7 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 // ports, they will strip off extra bits as required.
   wire dummy_bus_bpayload_m1;
   assign {dummy_bus_bpayload_m1, bus_bpayload_m1} = { 1'b0
+    , bpayload_s8_m1
     , bpayload_s7_m1
     , bpayload_s6_m1
     , bpayload_s5_m1
@@ -3820,6 +4029,12 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
   assign {blank_bpayload_s7 
     , bpayload_s7_m1
  } = {1'b0, {`AXI_NUM_MASTERS{sp_bpayload_s7}}}; 
+// --------------------------------------------------  
+// Connect slave port output signals, to individual    
+// per master port signals.                            
+  assign {blank_bpayload_s8 
+    , bpayload_s8_m1
+ } = {1'b0, {`AXI_NUM_MASTERS{sp_bpayload_s8}}}; 
 
 
 // --------------------------------------------------  
@@ -3886,6 +4101,13 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 };
 
 
+// --------------------------------------------------  
+// Connect master port wires to per slave port wires.  
+  assign {blank_arvalid_s8, bus_arvalid_s8} = {
+     1'b0
+      , arvalid_s8_m1
+};
+
 
 
 
@@ -3898,6 +4120,7 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 // Connect master port output signals, to individual   
 // per slave port signals.                             
   assign { blank_arvalid_m1
+  , arvalid_s8_m1
   , arvalid_s7_m1
   , arvalid_s6_m1
   , arvalid_s5_m1
@@ -3973,6 +4196,13 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 };
 
 
+// --------------------------------------------------  
+// Connect master port wires to per slave port wires.  
+  assign {blank_arpayload_s8, bus_arpayload_s8} = {
+     1'b0
+      , arpayload_s8_m1
+};
+
 
 
 
@@ -3985,6 +4215,7 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 // Connect master port output signals, to individual   
 // per slave port signals.                             
   assign { blank_arpayload_m1
+  , arpayload_s8_m1
   , arpayload_s7_m1
   , arpayload_s6_m1
   , arpayload_s5_m1
@@ -4060,6 +4291,13 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 };
 
 
+// --------------------------------------------------  
+// Connect master port wires to per slave port wires.  
+  assign {blank_rready_s8, bus_rready_s8} = {
+     1'b0
+      , (`AXI_R_LAYER_M1_S8 ? rready_shrd_mp_s8 : rready_s8_m1)
+};
+
 
 
 
@@ -4072,6 +4310,7 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 // Connect master port output signals, to individual   
 // per slave port signals.                             
   assign { blank_rready_m1
+    , rready_s8_m1
     , rready_s7_m1
     , rready_s6_m1
     , rready_s5_m1
@@ -4147,6 +4386,13 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 };
 
 
+// --------------------------------------------------  
+// Connect master port wires to per slave port wires.  
+  assign {blank_awvalid_s8, bus_awvalid_s8} = {
+     1'b0
+      , awvalid_s8_m1
+};
+
 
 
 
@@ -4159,6 +4405,7 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 // Connect master port output signals, to individual   
 // per slave port signals.                             
   assign { blank_awvalid_m1
+  , awvalid_s8_m1
   , awvalid_s7_m1
   , awvalid_s6_m1
   , awvalid_s5_m1
@@ -4234,6 +4481,13 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 };
 
 
+// --------------------------------------------------  
+// Connect master port wires to per slave port wires.  
+  assign {blank_awpayload_s8, bus_awpayload_s8} = {
+     1'b0
+      , awpayload_s8_m1
+};
+
 
 
 
@@ -4246,6 +4500,7 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 // Connect master port output signals, to individual   
 // per slave port signals.                             
   assign { blank_awpayload_m1
+  , awpayload_s8_m1
   , awpayload_s7_m1
   , awpayload_s6_m1
   , awpayload_s5_m1
@@ -4321,6 +4576,13 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 };
 
 
+// --------------------------------------------------  
+// Connect master port wires to per slave port wires.  
+  assign {blank_wvalid_s8, bus_wvalid_s8} = {
+     1'b0
+      , wvalid_s8_m1
+};
+
 
 
 
@@ -4333,6 +4595,7 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 // Connect master port output signals, to individual   
 // per slave port signals.                             
   assign { blank_wvalid_m1
+  , wvalid_s8_m1
   , wvalid_s7_m1
   , wvalid_s6_m1
   , wvalid_s5_m1
@@ -4408,6 +4671,13 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 };
 
 
+// --------------------------------------------------  
+// Connect master port wires to per slave port wires.  
+  assign {blank_wpayload_s8, bus_wpayload_s8} = {
+     1'b0
+      , wpayload_s8_m1
+};
+
 
 
 
@@ -4420,6 +4690,7 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 // Connect master port output signals, to individual   
 // per slave port signals.                             
   assign { blank_wpayload_m1
+  , wpayload_s8_m1
   , wpayload_s7_m1
   , wpayload_s6_m1
   , wpayload_s5_m1
@@ -4495,6 +4766,13 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 };
 
 
+// --------------------------------------------------  
+// Connect master port wires to per slave port wires.  
+  assign {blank_bready_s8, bus_bready_s8} = {
+     1'b0
+      , (`AXI_B_LAYER_M1_S8 ? bready_shrd_mp_s8 : bready_s8_m1)
+};
+
 
 
 
@@ -4507,6 +4785,7 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 // Connect master port output signals, to individual   
 // per slave port signals.                             
   assign { blank_bready_m1
+    , bready_s8_m1
     , bready_s7_m1
     , bready_s6_m1
     , bready_s5_m1
@@ -4765,6 +5044,21 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 
   assign bpayload_s7 = {
     bid_s7,    bresp_s7 };
+
+  assign {
+    arid_s8,    araddr_s8,    arlen_s8,    arsize_s8,    arburst_s8,    arlock_s8,    arcache_s8,    arprot_s8 }  = `AXI_S8_ON_AR_SHARED_ONLY_VAL ? arpayload_shrd : arpayload_s8;
+
+  assign {
+    awid_s8,    awaddr_s8,    awlen_s8,    awsize_s8,    awburst_s8,    awlock_s8,    awcache_s8,    awprot_s8 }  = `AXI_S8_ON_AW_SHARED_ONLY_VAL ? awpayload_shrd : awpayload_s8;
+
+  assign {
+    wid_s8,    wdata_s8,    wstrb_s8,    wlast_s8 }  = `AXI_S8_ON_W_SHARED_ONLY_VAL ? wpayload_shrd : wpayload_s8;
+
+  assign rpayload_s8 = {
+    rid_s8,    rdata_s8,    rresp_s8,    rlast_s8 };
+
+  assign bpayload_s8 = {
+    bid_s8,    bresp_s8 };
     wire [`AXI_SLV_PRIORITY_W-1:0] priority_s0;
     assign priority_s0 = 0;
     wire [`AXI_SLV_PRIORITY_W-1:0] priority_s1;
@@ -4781,6 +5075,8 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
    assign priority_s6 = `AXI_PRIORITY_S6;
     wire [`AXI_SLV_PRIORITY_W-1:0] priority_s7;
    assign priority_s7 = `AXI_PRIORITY_S7;
+    wire [`AXI_SLV_PRIORITY_W-1:0] priority_s8;
+   assign priority_s8 = `AXI_PRIORITY_S8;
 
     wire [`AXI_MST_PRIORITY_W-1:0] priority_m1;
    assign priority_m1 = `AXI_PRIORITY_M1;
@@ -4826,6 +5122,11 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
   assign {ar_blank_priority_s7, ar_bus_mst_priorities_s7} = {1'b0
       , priority_m1
   };
+  wire [(`AXI_MST_PRIORITY_W*`AXI_AR_S8_NMV)-1:0] ar_bus_mst_priorities_s8;
+  wire ar_blank_priority_s8;
+  assign {ar_blank_priority_s8, ar_bus_mst_priorities_s8} = {1'b0
+      , priority_m1
+  };
   wire [(`AXI_MST_PRIORITY_W*`AXI_AW_S0_NMV)-1:0] aw_bus_mst_priorities_s0;
   wire aw_blank_priority_s0;
   assign {aw_blank_priority_s0, aw_bus_mst_priorities_s0} = {1'b0
@@ -4864,6 +5165,11 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
   wire [(`AXI_MST_PRIORITY_W*`AXI_AW_S7_NMV)-1:0] aw_bus_mst_priorities_s7;
   wire aw_blank_priority_s7;
   assign {aw_blank_priority_s7, aw_bus_mst_priorities_s7} = {1'b0
+      , priority_m1
+  };
+  wire [(`AXI_MST_PRIORITY_W*`AXI_AW_S8_NMV)-1:0] aw_bus_mst_priorities_s8;
+  wire aw_blank_priority_s8;
+  assign {aw_blank_priority_s8, aw_bus_mst_priorities_s8} = {1'b0
       , priority_m1
   };
   wire [(`AXI_MST_PRIORITY_W*`AXI_W_S0_NMV)-1:0] w_bus_mst_priorities_s0;
@@ -4906,9 +5212,15 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
   assign {w_blank_priority_s7, w_bus_mst_priorities_s7} = {1'b0
       , priority_m1
   };
+  wire [(`AXI_MST_PRIORITY_W*`AXI_W_S8_NMV)-1:0] w_bus_mst_priorities_s8;
+  wire w_blank_priority_s8;
+  assign {w_blank_priority_s8, w_bus_mst_priorities_s8} = {1'b0
+      , priority_m1
+  };
   wire [(`AXI_SLV_PRIORITY_W*`AXI_R_M1_NSV)-1:0] r_bus_slv_priorities_m1;
   wire r_blank_priority_m1;
   assign r_bus_slv_priorities_m1 = {1'b0
+        , priority_s8
         , priority_s7
         , priority_s6
         , priority_s5
@@ -4921,6 +5233,7 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
   wire [(`AXI_SLV_PRIORITY_W*`AXI_B_M1_NSV)-1:0] b_bus_slv_priorities_m1;
   wire b_blank_priority_m1;
   assign b_bus_slv_priorities_m1 = {1'b0
+        , priority_s8
         , priority_s7
         , priority_s6
         , priority_s5
@@ -4940,6 +5253,9 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 
   // Select between shared and dedicated channel valid signals for
   // each slave.
+       assign arvalid_s8 = `AXI_S8_ON_AR_SHARED_ONLY_VAL
+                                 ? arvalid_shrd_s8 
+                                 : arvalid_ddctd_s8;
        assign arvalid_s7 = `AXI_S7_ON_AR_SHARED_ONLY_VAL
                                  ? arvalid_shrd_s7 
                                  : arvalid_ddctd_s7;
@@ -4967,6 +5283,9 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 
   // Select between shared and dedicated channel valid signals for
   // each slave.
+       assign awvalid_s8 = `AXI_S8_ON_AW_SHARED_ONLY_VAL
+                                 ? awvalid_shrd_s8 
+                                 : awvalid_ddctd_s8;
        assign awvalid_s7 = `AXI_S7_ON_AW_SHARED_ONLY_VAL
                                  ? awvalid_shrd_s7 
                                  : awvalid_ddctd_s7;
@@ -4994,6 +5313,9 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
 
   // Select between shared and dedicated channel valid signals for
   // each slave.
+       assign wvalid_s8 = `AXI_S8_ON_W_SHARED_ONLY_VAL
+                                 ? wvalid_shrd_s8 
+                                 : wvalid_ddctd_s8;
        assign wvalid_s7 = `AXI_S7_ON_W_SHARED_ONLY_VAL
                                  ? wvalid_shrd_s7 
                                  : wvalid_ddctd_s7;
@@ -5084,6 +5406,13 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
     , issued_wtx_mst_sys_oh_s7[0]
  } = issued_wtx_mst_oh_o_s7;
  
+  // Translate issued_wtx_mst_oh_o_s8 to a bit per
+  // system master bus. This signal decodes when dedicated
+  // masters issue a t/x to the slave.
+  assign {issued_wtx_mst_oh_dummy1_s8
+    , issued_wtx_mst_sys_oh_s8[0]
+ } = issued_wtx_mst_oh_o_s8;
+ 
   // Translate issued_wtx_mst_sys_oh_s0 to a bit per
   // master visible to slave 0 value.
   assign issued_wtx_mst_oh_i_eb_s0 = { 1'b0
@@ -5155,6 +5484,15 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
   // Remove extra bit. 
   assign issued_wtx_mst_oh_i_s7 
   = issued_wtx_mst_oh_i_eb_s7[`AXI_NMV_S7-1:0];
+   
+  // Translate issued_wtx_mst_sys_oh_s8 to a bit per
+  // master visible to slave 8 value.
+  assign issued_wtx_mst_oh_i_eb_s8 = { 1'b0
+    , issued_wtx_mst_sys_oh_s8[0]
+  };
+  // Remove extra bit. 
+  assign issued_wtx_mst_oh_i_s8 
+  = issued_wtx_mst_oh_i_eb_s8[`AXI_NMV_S8-1:0];
    
  // Collect all shrd_w_nxt_fb_pend_s* signals into a bus
  // with a bit for each slave on the shared W channel.
@@ -5652,6 +5990,63 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
   );
 
 
+  DW_axi_sp
+   #(`AXI_NMV_S8, 
+`AXI_LOG2_NMV_S8, `AXI_AR_S8_NMV, `AXI_AR_S8_NMV_LOG2, `AXI_AR_S8_NMV_P1_LOG2, `AXI_AW_S8_NMV, `AXI_AW_S8_NMV_LOG2, `AXI_AW_S8_NMV_P1_LOG2, `AXI_W_S8_NMV, `AXI_W_S8_NMV_LOG2, `AXI_W_S8_NMV_P1_LOG2, `AXI_AR_ARB_TYPE_S8, `AXI_AW_ARB_TYPE_S8, `AXI_W_ARB_TYPE_S8, `AXI_AR_MCA_EN_S8, `AXI_AW_MCA_EN_S8, `AXI_W_MCA_EN_S8, `AXI_AR_MCA_NC_S8, `AXI_AW_MCA_NC_S8, `AXI_W_MCA_NC_S8, `AXI_AR_MCA_NC_W_S8, `AXI_AW_MCA_NC_W_S8, `AXI_W_MCA_NC_W_S8, `AXI_VV_S8_BY_M1, `AXI_VV_S8_BY_M2, `AXI_VV_S8_BY_M3, `AXI_VV_S8_BY_M4, `AXI_VV_S8_BY_M5, `AXI_VV_S8_BY_M6, `AXI_VV_S8_BY_M7, `AXI_VV_S8_BY_M8, `AXI_VV_S8_BY_M9, `AXI_VV_S8_BY_M10, `AXI_VV_S8_BY_M11, `AXI_VV_S8_BY_M12, `AXI_VV_S8_BY_M13, `AXI_VV_S8_BY_M14, `AXI_VV_S8_BY_M15, `AXI_VV_S8_BY_M16, `AXI_WID_S8, `AXI_LOG2_WID_S8, `AXI_LOG2_WID_P1_S8, `AXI_MAX_FARC_S8, `AXI_LOG2_MAX_FARC_P1_S8, `AXI_MAX_FAWC_S8, `AXI_LOG2_MAX_FAWC_S8, `AXI_LOG2_MAX_FAWC_P1_S8, `AXI_HAS_LOCKING,`AXI_AW_LAYER_S8_M1 ,`AXI_AW_LAYER_S8_M2 ,`AXI_AW_LAYER_S8_M3 ,`AXI_AW_LAYER_S8_M4 ,`AXI_AW_LAYER_S8_M5 ,`AXI_AW_LAYER_S8_M6 ,`AXI_AW_LAYER_S8_M7 ,`AXI_AW_LAYER_S8_M8 ,`AXI_AW_LAYER_S8_M9 ,`AXI_AW_LAYER_S8_M10 ,`AXI_AW_LAYER_S8_M11 ,`AXI_AW_LAYER_S8_M12 ,`AXI_AW_LAYER_S8_M13 ,`AXI_AW_LAYER_S8_M14 ,`AXI_AW_LAYER_S8_M15 ,`AXI_AW_LAYER_S8_M16 ,`AXI_AR_LAYER_S8_M1 ,`AXI_AR_LAYER_S8_M2 ,`AXI_AR_LAYER_S8_M3 ,`AXI_AR_LAYER_S8_M4 ,`AXI_AR_LAYER_S8_M5 ,`AXI_AR_LAYER_S8_M6 ,`AXI_AR_LAYER_S8_M7 ,`AXI_AR_LAYER_S8_M8 ,`AXI_AR_LAYER_S8_M9 ,`AXI_AR_LAYER_S8_M10 ,`AXI_AR_LAYER_S8_M11 ,`AXI_AR_LAYER_S8_M12 ,`AXI_AR_LAYER_S8_M13 ,`AXI_AR_LAYER_S8_M14 ,`AXI_AR_LAYER_S8_M15 ,`AXI_AR_LAYER_S8_M16 ,`AXI_W_LAYER_S8_M1 ,`AXI_W_LAYER_S8_M2 ,`AXI_W_LAYER_S8_M3 ,`AXI_W_LAYER_S8_M4 ,`AXI_W_LAYER_S8_M5 ,`AXI_W_LAYER_S8_M6 ,`AXI_W_LAYER_S8_M7 ,`AXI_W_LAYER_S8_M8 ,`AXI_W_LAYER_S8_M9 ,`AXI_W_LAYER_S8_M10 ,`AXI_W_LAYER_S8_M11 ,`AXI_W_LAYER_S8_M12 ,`AXI_W_LAYER_S8_M13 ,`AXI_W_LAYER_S8_M14 ,`AXI_W_LAYER_S8_M15 ,`AXI_W_LAYER_S8_M16 ,`AXI_R_LAYER_M1_S8 ,`AXI_R_LAYER_M2_S8 ,`AXI_R_LAYER_M3_S8 ,`AXI_R_LAYER_M4_S8 ,`AXI_R_LAYER_M5_S8 ,`AXI_R_LAYER_M6_S8 ,`AXI_R_LAYER_M7_S8 ,`AXI_R_LAYER_M8_S8 ,`AXI_R_LAYER_M9_S8 ,`AXI_R_LAYER_M10_S8 ,`AXI_R_LAYER_M11_S8 ,`AXI_R_LAYER_M12_S8 ,`AXI_R_LAYER_M13_S8 ,`AXI_R_LAYER_M14_S8 ,`AXI_R_LAYER_M15_S8 ,`AXI_R_LAYER_M16_S8 ,`AXI_B_LAYER_M1_S8 ,`AXI_B_LAYER_M2_S8 ,`AXI_B_LAYER_M3_S8 ,`AXI_B_LAYER_M4_S8 ,`AXI_B_LAYER_M5_S8 ,`AXI_B_LAYER_M6_S8 ,`AXI_B_LAYER_M7_S8 ,`AXI_B_LAYER_M8_S8 ,`AXI_B_LAYER_M9_S8 ,`AXI_B_LAYER_M10_S8 ,`AXI_B_LAYER_M11_S8 ,`AXI_B_LAYER_M12_S8 ,`AXI_B_LAYER_M13_S8 ,`AXI_B_LAYER_M14_S8 ,`AXI_B_LAYER_M15_S8 ,`AXI_B_LAYER_M16_S8 , `AXI_AW_S8_HAS_SHRD_DDCTD_LNK_VAL, `AXI_W_S8_HAS_SHRD_DDCTD_LNK_VAL, `AXI_S8_ON_AR_SHARED_ONLY_VAL, `AXI_S8_ON_AW_SHARED_ONLY_VAL, `AXI_S8_ON_W_SHARED_ONLY_VAL
+  )
+  U_DW_axi_sp_s8 (
+    .aclk_i                   (aclk),
+    .aresetn_i                (aresetn),
+    .ar_bus_mst_priorities_i  (ar_bus_mst_priorities_s8),
+    .aw_bus_mst_priorities_i  (aw_bus_mst_priorities_s8),
+    .w_bus_mst_priorities_i   (w_bus_mst_priorities_s8),
+
+// Read Address Channel
+    .arready_i                (arready_s8),
+    .arvalid_o                (arvalid_ddctd_s8),
+    .arpayload_o              (arpayload_s8),
+    .bus_arvalid_i            (bus_arvalid_s8),
+    .bus_arpayload_i          (bus_arpayload_s8),
+    .bus_arready_o            (bus_sp_arready_s8),
+    .rcpl_tx_shrd_o           (rcpl_tx_s8),
+// Read Data Channel
+    .rvalid_i                 (rvalid_s8),
+    .rpayload_i               (rpayload_s8),
+    .rready_o                 (rready_s8),
+    .bus_rready_i             (bus_rready_s8),
+    .bus_rvalid_o             (sp_rvalid_s8),
+    .r_shrd_ch_req_o          (r_shrd_ch_req_s8),
+    .rpayload_o               (sp_rpayload_s8),
+// Write Address Channel
+    .awready_i                (awready_s8),
+    .awvalid_o                (awvalid_ddctd_s8),
+    .awpayload_o              (awpayload_s8),
+    .bus_awvalid_i            (bus_awvalid_s8),
+    .bus_awpayload_i          (bus_awpayload_s8),
+    .bus_awready_o            (bus_sp_awready_s8),
+    .aw_shrd_lyr_granted_o    (aw_shrd_lyr_granted_s8),
+    .issued_wtx_mst_oh_o      (issued_wtx_mst_oh_o_s8),
+    .issued_wtx_mst_oh_i      (issued_wtx_mst_oh_i_s8),
+// Write Data Channel
+    .wready_i                 (wready_s8),
+    .wvalid_o                 (wvalid_ddctd_s8),
+    .wpayload_o               (wpayload_s8),
+    .bus_wvalid_i             (bus_wvalid_s8),
+    .bus_wpayload_i           (bus_wpayload_s8),
+    .bus_wready_o             (bus_sp_wready_s8),
+    .issued_tx_shrd_i         (issued_wtx_shrd_sys_s8),
+    .issued_tx_shrd_mst_oh_i  (issued_wtx_shrd_mst_oh_s8),
+    .shrd_w_nxt_fb_pend_o     (shrd_w_nxt_fb_pend_s8),
+//Burst Response Channel
+    .bvalid_i                 (bvalid_s8),
+    .bpayload_i               (bpayload_s8),
+    .bready_o                 (bready_s8),
+    .bus_bready_i             (bus_bready_s8),
+    .bus_bvalid_o             (sp_bvalid_s8),
+    .bpayload_o               (sp_bpayload_s8),
+    .b_shrd_ch_req_o          (b_shrd_ch_req_s8),
+    .wcpl_tx_shrd_o           (wcpl_tx_s8)
+  );
 
 
 
@@ -5835,6 +6230,7 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
   `undef AXI_HAS_S5
   `undef AXI_HAS_S6
   `undef AXI_HAS_S7
+  `undef AXI_HAS_S8
   `undef AXI_HAS_M1
   `undef AXI_V_S0_BY_M1
   `undef AXI_V_S1_BY_M1
@@ -5844,4 +6240,5 @@ wire blank_issued_wtx_shrd_sys_m1_s_bus;
   `undef AXI_V_S5_BY_M1
   `undef AXI_V_S6_BY_M1
   `undef AXI_V_S7_BY_M1
+  `undef AXI_V_S8_BY_M1
 endmodule 

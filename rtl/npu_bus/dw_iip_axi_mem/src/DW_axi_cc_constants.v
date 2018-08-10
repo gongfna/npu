@@ -127,7 +127,7 @@
 // 
 // This is the number of AXI slaves connecting to DW_axi. 
 // A slave port is instantiated for each external AXI slave.
-`define AXI_NUM_SLAVES 7
+`define AXI_NUM_SLAVES 8
 
 //This is the log2 of (AXI_NUM_SLAVES )
 
@@ -151,7 +151,7 @@
 //For 16 slaves, the decoder needs to respresent 17, which is
 //4 in log2 format
 
-`define AXI_LOG2_NSP1 3
+`define AXI_LOG2_NSP1 4
 
 //This is the number of user selected slaves plus 1.
 //The decode bus for the decoder needs to take into account
@@ -159,7 +159,7 @@
 //For 16 slaves, the decoder needs to respresent 17, which is
 //4 in log2 format
 
-`define AXI_NSP1 8
+`define AXI_NSP1 9
 
 //This is the log2 of (AXI_NUM_SLAVES + 2)
 //Required as a paramter to one of the internal arbiters.
@@ -607,7 +607,7 @@
 //Lower values of slave priority width will mean less logic levels through
 //the internal master port arbiters.
 
-`define AXI_SLV_PRIORITY_W 3
+`define AXI_SLV_PRIORITY_W 4
 
 
 // Name:         AXI_REG_AW_W_PATHS
@@ -1798,12 +1798,12 @@
 
 
 // Name:         AXI_NV_S8_BY_M1
-// Default:      false ((AXI_NUM_SLAVES >= 8) && (AXI_NUM_MASTERS >= 1))
+// Default:      true ((AXI_NUM_SLAVES >= 8) && (AXI_NUM_MASTERS >= 1))
 // Values:       false (0), true (1)
 // Enabled:      ((AXI_NUM_SLAVES >= 8) && (AXI_NUM_MASTERS >= 1))
 // 
 // This selects whether Slave 8 is visible by Master 1 in Normal Mode
-`define AXI_NV_S8_BY_M1 0
+`define AXI_NV_S8_BY_M1 1
 
 
 // Name:         AXI_NV_S8_BY_M2
@@ -3130,7 +3130,7 @@
 
 //This shows whether Slave 8 is visible by any master in Normal Mode
 
-`define AXI_NV_S8_BY_ANY_M 0
+`define AXI_NV_S8_BY_ANY_M 1
 
 
 //This shows whether Slave 9 is visible by any master in Normal Mode
@@ -4566,14 +4566,14 @@
 
 
 // Name:         AXI_BV_S8_BY_M1
-// Default:      false ((AXI_NUM_SLAVES >= 8) && (AXI_NUM_MASTERS >= 1) && 
+// Default:      true ((AXI_NUM_SLAVES >= 8) && (AXI_NUM_MASTERS >= 1) && 
 //               (AXI_REMAP_EN == 1))
 // Values:       false (0), true (1)
 // Enabled:      ((AXI_NUM_SLAVES >= 8) && (AXI_NUM_MASTERS >= 1) && (AXI_REMAP_EN 
 //               == 1))
 // 
 // This selects whether Slave 8 is visible by Master 1 in Boot Mode
-`define AXI_BV_S8_BY_M1 0
+`define AXI_BV_S8_BY_M1 1
 
 
 // Name:         AXI_BV_S8_BY_M2
@@ -6186,7 +6186,7 @@
 
 //This shows whether Slave 8 is visible by any master in Boot Mode
 
-`define AXI_BV_S8_BY_ANY_M 0
+`define AXI_BV_S8_BY_ANY_M 1
 
 
 //This shows whether Slave 9 is visible by any master in Boot Mode
@@ -7650,8 +7650,9 @@
 //For slaves greater than the number of slaves this is 0.
 //For masters greater than the number of masters this is 0.
 
-`define AXI_VV_S8_BY_M1 0
+`define AXI_VV_S8_BY_M1 1
 
+`define AXI_V_S8_BY_M1
 
 
 
@@ -9391,7 +9392,7 @@
 
 //This is the number of Slave that are visible by Master 1
 
-`define AXI_NSV_M1 7
+`define AXI_NSV_M1 8
 
 //This is the number of Slave that are visible by Master 1
 `define AXI_LOG2_NSV_M1 3
@@ -9613,12 +9614,12 @@
 //This is the number of masters that are visible to slave 8
 //in normal address mode.
 
-`define AXI_NNMV_S8 0
+`define AXI_NNMV_S8 1
 
 //This is the number of masters that are visible to slave 8
 //in boot address mode.
 
-`define AXI_BNMV_S8 0
+`define AXI_BNMV_S8 1
 
 
 //This is the number of masters that are visible to slave 9
@@ -9712,11 +9713,11 @@
 //This is the number of Slaves (plus 1) that are visible by Master 1
 //This includes the default slave.
 
-`define AXI_NSP1V_M1 8
+`define AXI_NSP1V_M1 9
 
 //This is the log2 of the number of Slaves (plus 1) that are visible by Master 1
 //This includes the default slave.
-`define AXI_LOG2_NSP1V_M1 3
+`define AXI_LOG2_NSP1V_M1 4
 
 `define AXI_LOG2_NSP2V_M1 4
 
@@ -71634,10 +71635,10 @@
 // Number of slaves visible to master 1 on the read data channel,
 // including the shared to dedicated link if it exists.
 
-`define AXI_R_M1_NSV 8
+`define AXI_R_M1_NSV 9
 
 // Log base 2 of AXI_R_M1_NMV.
-`define AXI_R_M1_NSV_LOG2 3
+`define AXI_R_M1_NSV_LOG2 4
 
 // Log base 2 of (AXI_R_M1_NMV + 1).
 `define AXI_R_M1_NSV_P1_LOG2 4
@@ -71658,10 +71659,10 @@
 // Number of slaves visible to master 1 on the burst response channel,
 // including the shared to dedicated link if it exists.
 
-`define AXI_B_M1_NSV 8
+`define AXI_B_M1_NSV 9
 
 // Log base 2 of AXI_B_M1_NMV.
-`define AXI_B_M1_NSV_LOG2 3
+`define AXI_B_M1_NSV_LOG2 4
 
 // Log base 2 of (AXI_B_M1_NMV + 1).
 `define AXI_B_M1_NSV_P1_LOG2 4
@@ -72652,11 +72653,11 @@
 
 // Defined if slave 8 connects to only the shared read address channel.
 
-`define AXI_S8_ON_AR_SHARED_ONLY
+// `define AXI_S8_ON_AR_SHARED_ONLY
 
 // 1 if slave 8 connects to only the shared read address channel.
 
-`define AXI_S8_ON_AR_SHARED_ONLY_VAL 1
+`define AXI_S8_ON_AR_SHARED_ONLY_VAL 0
 
 
 
@@ -73052,11 +73053,11 @@
 
 // Defined if slave 8 connects to only the shared write address channel.
 
-`define AXI_S8_ON_AW_SHARED_ONLY
+// `define AXI_S8_ON_AW_SHARED_ONLY
 
 // 1 if slave 8 connects to only the shared write address channel.
 
-`define AXI_S8_ON_AW_SHARED_ONLY_VAL 1
+`define AXI_S8_ON_AW_SHARED_ONLY_VAL 0
 
 
 
@@ -73452,11 +73453,11 @@
 
 // Defined if slave 8 connects to only the shared write data channel.
 
-`define AXI_S8_ON_W_SHARED_ONLY
+// `define AXI_S8_ON_W_SHARED_ONLY
 
 // 1 if slave 8 connects to only the shared write data channel.
 
-`define AXI_S8_ON_W_SHARED_ONLY_VAL 1
+`define AXI_S8_ON_W_SHARED_ONLY_VAL 0
 
 
 
@@ -84938,7 +84939,7 @@
 // This parameter option is changeable only if there is at least 8 slave(s)  
 // in the system and at least one master has access to Slave 8 and if one 
 // has an internal decoder (AXI_HAS_XDCDR = 0).
-`define AXI_R1_NSA_S8 32'h16000000
+`define AXI_R1_NSA_S8 32'h1700000
 
 
 // Name:         AXI_R1_NEA_S8
@@ -84951,7 +84952,7 @@
 // This parameter option is changeable only if there is at least 8 slave(s)  
 // in the system and at least one master has access to Slave 8 and if one 
 // has an internal decoder (AXI_HAS_XDCDR = 0).
-`define AXI_R1_NEA_S8 32'h1600ffff
+`define AXI_R1_NEA_S8 32'h170ffff
  
 
 // Name:         AXI_R1_NSA_S9
@@ -88442,7 +88443,7 @@
 // This parameter option is changeable only if there is at least 8 slave(s)  
 // in the system and at least one master has access to Slave 8 and if one 
 // has an internal decoder (AXI_HAS_XDCDR = 0).
-`define AXI_R1_BSA_S8 32'h16000000
+`define AXI_R1_BSA_S8 32'h1700000
 
 
 // Name:         AXI_R1_BEA_S8
@@ -88455,7 +88456,7 @@
 // This parameter option is changeable only if there is at least 8 slave(s)  
 // in the system and at least one master has access to Slave 8 and if one 
 // has an internal decoder (AXI_HAS_XDCDR = 0).
-`define AXI_R1_BEA_S8 32'h1600ffff
+`define AXI_R1_BEA_S8 32'h170ffff
  
 
 // Name:         AXI_R1_BSA_S9
@@ -91881,6 +91882,7 @@
 `define AXI_HAS_S5
 `define AXI_HAS_S6
 `define AXI_HAS_S7
+`define AXI_HAS_S8
 
 //  Define for each master present
 `define AXI_HAS_M1

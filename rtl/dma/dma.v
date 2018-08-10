@@ -199,6 +199,17 @@ wire [31:0] zone4_size_s;
 wire [3:0] zone_en_s;
 wire [31:0] src_addr_s;
 wire [31:0] inst_depth_s;
+wire [3:0] awid_cfg; 
+wire [1:0] awburst_cfg; 
+wire awlock_cfg; 
+wire [2:0] awprot_cfg; 
+wire [3:0] awcache_cfg; 
+wire [3:0] wid_cfg; 
+wire [3:0] arid_cfg; 
+wire [1:0] arburst_cfg; 
+wire arlock_cfg; 
+wire [2:0] arprot_cfg; 
+wire [3:0] arcache_cfg; 
 //- Converter
 wire [3:0] dma_mode;
 wire mode_m2instb;
@@ -357,10 +368,22 @@ U_xDMA_CFG
   .zone_en_s(zone_en_s),
   .src_addr_s(src_addr_s),
   .inst_depth_s(inst_depth_s),
+  .awid_cfg(awid_cfg), 
+  .awburst_cfg(awburst_cfg), 
+  .awlock_cfg(awlock_cfg), 
+  .awprot_cfg(awprot_cfg), 
+  .awcache_cfg(awcache_cfg), 
+  .wid_cfg(wid_cfg), 
+  .arid_cfg(arid_cfg), 
+  .arburst_cfg(arburst_cfg), 
+  .arlock_cfg(arlock_cfg), 
+  .arprot_cfg(arprot_cfg), 
+  .arcache_cfg(arcache_cfg), 
   //- Converter
   .dma_mode(dma_mode),
   .mode_m2instb(mode_m2instb),
   .sys_reset_n(sys_reset_n), 
+  .axi_wr_buf_en(axi_wr_buf_en), 
   .npu_stop(npu_stop), 
   .npu_start(npu_start), 
   //- IRR
@@ -423,6 +446,17 @@ U_DMA_CORE
 .zone_en_s(zone_en_s),
 .src_addr_s(src_addr_s),
 .inst_depth_s(inst_depth_s),
+.awid_cfg(awid_cfg), 
+.awburst_cfg(awburst_cfg), 
+.awlock_cfg(awlock_cfg), 
+.awprot_cfg(awprot_cfg), 
+.awcache_cfg(awcache_cfg), 
+.wid_cfg(wid_cfg), 
+.arid_cfg(arid_cfg), 
+.arburst_cfg(arburst_cfg), 
+.arlock_cfg(arlock_cfg), 
+.arprot_cfg(arprot_cfg), 
+.arcache_cfg(arcache_cfg), 
 .mode_m2instb(mode_m2instb),
 .mode_m2instb_r(mode_m2instb_r),
 .dma_mode(dma_mode), 

@@ -26,16 +26,17 @@ Hierarchy:
 #1 $display("%t ns %m ``msg", $time, ``sig); \
 `endif 
 
-`define CASER(ptr) ``ptr: mdata_ddr = afifo[(``ptr+1)*128-1:``ptr*128]; 
+`define CASER(ptr) ptr: mdata_ddr = afifo[(ptr+1)*128-1:ptr*128]; 
+
 `define CASEW(wptr_r) \
-``wptr_r:begin \
-afifo[(``wptr_r+1)*128-1:``wptr_r*128] <= sdata_sram[127:0]; \
-afifo[(``wptr_r+2)*128-1:(``wptr_r+1)*128] <= sdata_sram[255:128]; \
+wptr_r:begin \
+afifo[(wptr_r+1)*128-1:wptr_r*128] <= sdata_sram[127:0]; \
+afifo[(wptr_r+2)*128-1:(wptr_r+1)*128] <= sdata_sram[255:128]; \
 end
 
 `define CASEW_M2(wptr_m2) \
-``wptr_m2:begin \
-fifo_m2[(``wptr_m2+1)*128-1:``wptr_m2*128] <= sdata_ddr_in[127:0]; \
+wptr_m2:begin \
+fifo_m2[(wptr_m2+1)*128-1:wptr_m2*128] <= sdata_ddr_in[127:0]; \
 end
 
 module dma_core 
@@ -79,20 +80,31 @@ input [31:0] zone4_size_s,
 input [3:0] zone_en_s,
 input [31:0] src_addr_s,
 input [31:0] inst_depth_s,
+input [3:0] awid_cfg, 
+input [1:0] awburst_cfg, 
+input awlock_cfg, 
+input [2:0] awprot_cfg, 
+input [3:0] awcache_cfg, 
+input [3:0] wid_cfg, 
+input [3:0] arid_cfg, 
+input [1:0] arburst_cfg, 
+input arlock_cfg, 
+input [2:0] arprot_cfg, 
+input [3:0] arcache_cfg, 
 input mode_m2instb,
 output reg mode_m2instb_r,
 input [3:0] dma_mode, 
 //- IRR
-output ex_zone_bias_wr_finish, 
-output ex_zone_wib_wr_finish, 
-output ex_zone_wb_wr_finish, 
-output init_inst_finish, 
-output zone3_wr_finish, 
-output zone2_wr_finish, 
-output zone1_rd_finish, 
-output zone0_rd_finish, 
+output reg ex_zone_bias_wr_finish, 
+output reg ex_zone_wib_wr_finish, 
+output reg ex_zone_wb_wr_finish, 
+output reg init_inst_finish, 
+output reg zone3_wr_finish, 
+output reg zone2_wr_finish, 
+output reg zone1_rd_finish, 
+output reg zone0_rd_finish, 
 //- STATUS
-output init_prot_finish, 
+output reg init_prot_finish, 
 output zone_addr_mismatch, 
 output reg inst_dec_exception, 
 input inst_work_state, 
@@ -111,40 +123,40 @@ output [2-1:0]       awburst_m,
 output [2-1:0]       awlock_m,
 output [4-1:0]       awcache_m,
 output [3-1:0]       awprot_m,
-input                       awready_s1,
+input                       awready_m,
 
 // Write Data Channel 1
-output                      wvalid_s1,
-output [4-1:0]    wid_s1,
-output [128-1:0]     wdata_s1,
-output [16-1:0]     wstrb_s1,
-output                      wlast_s1,
-input                       wready_s1,
+output                      wvalid_m,
+output [4-1:0]    wid_m,
+output [128-1:0]     wdata_m,
+output [16-1:0]     wstrb_m,
+output                      wlast_m,
+input                       wready_m,
 
 // Write Response Channel 1
-input                       bvalid_s1,
-input  [4-1:0]    bid_s1,
-input  [2-1:0]       bresp_s1,
-output                      bready_s1,
+input                       bvalid_m,
+input  [4-1:0]    bid_m,
+input  [2-1:0]       bresp_m,
+output                      bready_m,
 // Read Address Channel
-output                      arvalid_s,
-output [4-1:0]    arid_s,
-output [32-1:0]     araddr_s,
-output [4-1:0]    arlen_s,
-output [3-1:0]       arsize_s,
-output [2-1:0]       arburst_s,
-output [2-1:0]       arlock_s,
-output [4-1:0]       arcache_s,
-output [3-1:0]       arprot_s,
-input                       arready_s,
+output                      arvalid_m,
+output [4-1:0]    arid_m,
+output [32-1:0]     araddr_m,
+output [4-1:0]    arlen_m,
+output [3-1:0]       arsize_m,
+output [2-1:0]       arburst_m,
+output [2-1:0]       arlock_m,
+output [4-1:0]       arcache_m,
+output [3-1:0]       arprot_m,
+input                       arready_m,
 
 // Read Data Channel
-input                       rvalid_s,
-input  [4-1:0]    rid_s,
-input  [128-1:0]     rdata_s,
-input                       rlast_s,
-input  [2-1:0]       rresp_s,
-output                      rready_s,
+input                       rvalid_m,
+input  [4-1:0]    rid_m,
+input  [128-1:0]     rdata_m,
+input                       rlast_m,
+input  [2-1:0]       rresp_m,
+output                      rready_m,
 // System IF
 input xclk,
 input xrst_n 
@@ -250,11 +262,11 @@ wire mode_m2lstmb;
 wire mode_m2_down;
 
 wire arready_in;
-assign arready_in = arready_s;
+assign arready_in = arready_m;
 
 //
 //assign dma_finish = dma_done_ddr & dma_done_sram & ~dma_done;
-assign wstrb_s1 = 16'hffff;
+assign wstrb_m = 16'hffff;
 //
 assign mode_m2iob0 = ~dma_mode[3] & ~dma_mode[2] & ~dma_mode[1] & dma_mode[0];
 assign mode_m2iob1 = ~dma_mode[3] & ~dma_mode[2] & dma_mode[1] & ~dma_mode[0];
@@ -363,17 +375,36 @@ wire zone_sel3;
 //  .datain(zone_en_s), 
 //  .sel(zone_sel)
 //);
-wire zone1_addr_match;
-wire zone2_addr_match;
-wire zone3_addr_match;
-wire zone4_addr_match;
-assign zone1_addr_match = (maddr_ddr_start >= zone1_addr_s) & 
+wire zone1_addr_match_pre;
+wire zone2_addr_match_pre;
+wire zone3_addr_match_pre;
+wire zone4_addr_match_pre;
+reg zone1_addr_match;
+reg zone2_addr_match;
+reg zone3_addr_match;
+reg zone4_addr_match;
+always @(posedge xclk or negedge xrst_n)
+	if(~xrst_n) begin
+	    zone1_addr_match <= 1'b0;
+	    zone2_addr_match <= 1'b0;
+	    zone3_addr_match <= 1'b0;
+	    zone4_addr_match <= 1'b0;
+	end
+	else begin
+		if(~dma_done) begin
+		    zone1_addr_match <= zone1_addr_match_pre;
+		    zone2_addr_match <= zone2_addr_match_pre;
+		    zone3_addr_match <= zone3_addr_match_pre;
+		    zone4_addr_match <= zone4_addr_match_pre;
+		end
+	end
+assign zone1_addr_match_pre = (maddr_ddr_start >= zone1_addr_s) & 
 						 (maddr_ddr_start+len_max<=(zone1_addr_s+zone1_size_s));
-assign zone2_addr_match = (maddr_ddr_start >= zone2_addr_s) & 
+assign zone2_addr_match_pre = (maddr_ddr_start >= zone2_addr_s) & 
 						 (maddr_ddr_start+len_max<=(zone2_addr_s+zone2_size_s));
-assign zone3_addr_match = (maddr_ddr_start >= zone3_addr_s) & 
+assign zone3_addr_match_pre = (maddr_ddr_start >= zone3_addr_s) & 
 						 (maddr_ddr_start+len_max<=(zone3_addr_s+zone3_size_s));
-assign zone4_addr_match = (maddr_ddr_start >= zone4_addr_s) & 
+assign zone4_addr_match_pre = (maddr_ddr_start >= zone4_addr_s) & 
 						 (maddr_ddr_start+len_max<=(zone4_addr_s+zone4_size_s));
 assign zone_match = (zone1_addr_match & zone_en_s[0] & mode_m2) & ~mode_m2instb_r | 
                     (zone2_addr_match & zone_en_s[1] & mode_m2) & ~mode_m2instb_r | 
@@ -534,7 +565,7 @@ always @(posedge xclk or negedge xrst_n)
 		//end
 		if(dma_done | (~|stride))
 			mread_ddr_cnt <= 4'h0;
-		else if(rvalid_s & ~fifo_m2_full & ex_dma_r) begin
+		else if(rvalid_m & ~fifo_m2_full & ex_dma_r) begin
 			mread_ddr_cnt <= mread_ddr_cnt + 1;
 		end
 		else if(mread_ddr_cnt==rddr_len)
@@ -583,7 +614,7 @@ wire [127:0] sdata_ddr_mask;
 wire remap;
 assign remap = (|stride) & (mode_m2iob0 | mode_m2iob1);
 assign fifo_m2_push_en = ((~remap) |
-						  (remap & data_bit[15])) & rvalid_s & ~fifo_m2_full & dma_en_m2;
+						  (remap & data_bit[15])) & rvalid_m & ~fifo_m2_full & dma_en_m2;
 
 
 assign sdata_ddr_in = {128{|stride}} & sdata_ddr_merge | 
@@ -658,7 +689,7 @@ always @(posedge xclk or negedge xrst_n)
     end
     else begin
         // sram write
-		rvalid_s_r <= rvalid_s & ~fifo_m2_full;
+		rvalid_s_r <= rvalid_m & ~fifo_m2_full;
 		saccept_sram_r <= saccept_sram;
 		if(mode_m2_down) begin
 			if(dma_en_m2) begin
@@ -680,8 +711,8 @@ always @(posedge xclk or negedge xrst_n)
 			
 			//mwrite_sram <= dma_en_m2 & ~fifo_m2_empty & ~dma_done_sram & svalid_ddr;
 			 mwrite_sram <= dma_en_m2 & ~fifo_m2_empty & ~dma_done_sram & 
-			//			   (|stride ? (rvalid_s & rready_s & data_bit[15]) : svalid_ddr);
-		//				   (|stride ? (data_bit[0] & rvalid_s & rready_s) : svalid_ddr);
+			//			   (|stride ? (rvalid_m & rready_m & data_bit[15]) : svalid_ddr);
+		//				   (|stride ? (data_bit[0] & rvalid_m & rready_m) : svalid_ddr);
 			//			   (|stride ? data_bit[15] : svalid_ddr);
 			//			   (|stride ? data_bit[15] : rvalid_s_r);
 			//			   (|stride ? data_bit[15] : ~fifo_m2_empty);
@@ -699,13 +730,6 @@ always @(posedge xclk or negedge xrst_n)
                 //mwrite_sram <= 1'b1;
                 if(mwrite_sram) begin
                     rptr_m2 <= rptr_m2 + 'h1;
-					//- `DBG_DISP2(MDATA_SR = %h, mdata_sram)
-					//- `DBG_DISP2(ddr_wr_cnt = %h, ddr_wr_resp_cnt)
-					//- `DBG_DISP2(maddr_ddr_start = %h, maddr_ddr_start)
-					//- `DBG_DISP2(len_max = %h, len_max)
-					//- `DBG_DISP2(RPTR_M2= %h, rptr_m2)
-					//- `DBG_DISP2(dma_done ddr= %h, dma_done_ddr)
-					//- `DBG_DISP2(dma_done srm= %h, dma_done_sram)
 				end
             end
         end
@@ -792,7 +816,10 @@ reg [31:0] ddr_wr_req_cnt;
 reg [31:0] ddr_aw_req_cnt;
 
 //-- AR AW LENGTH CALC
-
+//-- 1. LENGTH = [0(first read/write length), f(not over range or cross 4k), ...
+//--              k(k=(4k-addr)/4, if cross 4k boundary), f(not over range or cross 4k), ...
+//--              m(m=(max-addr)/4) ... 
+//--             ]
 wire [3:0] boundary_4k_ar;
 wire [3:0] boundary_4k_aw;
 wire [31:0] maddr_ddr_diff_nxt;
@@ -811,6 +838,7 @@ assign maddr_ddr_diff_over_range_w = (maddr_ddr_diff_cur_w > len_max_shl5)|
 assign maddr_ddr_diff_nxt = maddr_ddr_diff_cur + 32'h100;
 assign maddr_ddr_diff_nxt_w = maddr_ddr_diff_cur_w + 32'h100;
 assign maddr_ddr_diff_nxt_4k = maddr_ddr_diff_cur_all[11:8];
+//-- BIT[11:8] IS NUMBER OF SINGLE XFERS
 assign maddr_ddr_diff_nxt_4k_w = maddr_ddr_diff_cur_w_all[11:8];
 //assign boundary_4k_ar = (maddr_ddr_diff_nxt <= len_max_shl4) ? 
 //-assign boundary_4k_ar = (maddr_ddr_diff_cur <= len_max_shl4) ? 
@@ -830,9 +858,11 @@ assign boundary_4k_ar = maddr_ddr_diff_over_range_r ?
 //-                        ((&maddr_ddr_diff_nxt_4k_w) ? ~maddr_ddr_diff_cur_w_all[7:4] : 
 //-						 (maddr_ddr_diff_nxt_w <= len_max_shl5)? 4'hf:awnum_rest[3:0]) :
 //-						awnum_rest[3:0];
+
+//-- IF ADDRESS OVER RANGE, NEXT LENGTH IS AWNUM_REST
 assign boundary_4k_aw = maddr_ddr_diff_over_range_w ? 
-//-                          awnum_rest[3:0] : ((&maddr_ddr_diff_nxt_4k_w) ? ~maddr_ddr_diff_cur_w_all[7:4] : 
-                          4'h0 : ((&maddr_ddr_diff_nxt_4k_w) ? ~maddr_ddr_diff_cur_w_all[7:4] : 
+                          awnum_rest[3:0] : ((&maddr_ddr_diff_nxt_4k_w) ? ~maddr_ddr_diff_cur_w_all[7:4] : 
+//-                          4'h0 : ((&maddr_ddr_diff_nxt_4k_w) ? ~maddr_ddr_diff_cur_w_all[7:4] : 
 						                                                  4'hf);
 assign boundary_4k_arnum = maddr_ddr_diff_over_range_r ? 4'h0: 
                             ((&maddr_ddr_diff_nxt_4k) ? ~maddr_ddr_diff_cur_all[7:4] : 4'h0);
@@ -843,12 +873,17 @@ assign boundary_4k_awnum = maddr_ddr_diff_over_range_w ? 4'h0:
 assign len_max_shl4 = {len_max[27:0], 4'h0};
 assign len_max_shl1 = {len_max[30:0], 1'b0};
 assign len_max_shl5 = {len_max[26:0], 5'b0};
+//-- ACTUAL ADDRESS RANGE FROM START TO CURRENT
 assign maddr_ddr_diff_cur = maddr_ddr_diff_cur_all-maddr_ddr_start;
+//-- ACTUAL ADDRESS RANGE FROM START TO CURRENT
 assign maddr_ddr_diff_cur_w = maddr_ddr_diff_cur_w_all-maddr_ddr_start;
+//-- MADDR_DDR IS ARADDR_S, THE LOGIC CALCULATE NEXT ARADDR_S
 assign maddr_ddr_diff_cur_all = maddr_ddr+burst_len;
+//-- MADDR_DDR IS AWADDR_S1, THE LOGIC CALCULATE NEXT AWADDR_S1
 assign maddr_ddr_diff_cur_w_all = maddr_ddr+wburst_len;
 assign arnum_rest = len_max - maddr_ddr_diff_cur[31:4] - 32'h1 - boundary_4k_arnum;
 //assign awnum_rest = len_max_shl1 - maddr_ddr_diff_cur_w[31:4] - 32'h1;
+//-- CALCULATE LENGTH WHEN OVER RANGE
 assign awnum_rest = len_max_shl1 - maddr_ddr_diff_cur_w[31:4] - 32'h1 - boundary_4k_awnum;
 //assign arnum_pre = ((maddr_ddr_diff_cur + 32'h100) <= len_max_shl4) ? 4'hf : arnum_rest[3:0];
 assign arnum_pre = boundary_4k_ar;
@@ -1001,7 +1036,7 @@ always @(posedge xclk or negedge xrst_n)
 		sdata_ddr_shift <= 128'h0;
 	end
 	else begin
-		if(rvalid_s & ~fifo_m2_full) 
+		if(rvalid_m & ~fifo_m2_full) 
 			if(data_bit[0])
 				sdata_ddr_shift <= sdata_ddr_mask;
 			else
@@ -1043,7 +1078,7 @@ always @(posedge xclk or negedge xrst_n)
 		    //& ~fifo_m2_full & svalid_ddr & ~dma_done_ddr_rreq) begin
 		    //& ~fifo_m2_full & ~dma_done_ddr_rreq) begin
 		    & ~fifo_m2_full & ~mwrite_sram_done) begin
-			rlast_s_r <= rlast_s;
+			rlast_s_r <= rlast_m;
 		    //- if(rlast_s_r) begin
 			//- 	data_bit <= 16'b0;
 			//-     data_bit[maddr_ddr_pre[3:0]] <= 1'b1;
@@ -1051,9 +1086,9 @@ always @(posedge xclk or negedge xrst_n)
 		    //- else begin
 			//-     data_bit <= {data_bit[14:0], data_bit[15]};
 		    //- end
-			if(rvalid_s)
+			if(rvalid_m)
 			     data_bit <= {data_bit[14:0], data_bit[15]};
-		    //if(rlast_s) begin
+		    //if(rlast_m) begin
 		    if(mread_ddr & arready_in) begin
 			    if(stride_cnt==stride) begin
 			    	map_num <= map_num + 'h1;
@@ -1070,17 +1105,6 @@ always @(posedge xclk or negedge xrst_n)
 			    	stride_cnt <= stride_cnt + 2'b1;
 			    end
 		    end
-				//-`ifdef DEBUG 
-				//-$display("DATA_BIT=%b", data_bit);
-				//-$display("RDATA_S=%h", rdata_s);
-				//-$display("SDATA_MASK=%h", sdata_mask);
-				//-#1 $display("SDATA_SHF= %h", sdata_ddr_shift);
-				//-//$display("DMA_EN_M2=%h", dma_en_m2);
-				//-//$display("MODE_M2IOB0=%h", mode_m2iob0);
-				//-//$display("MODE_M2IOB1=%h", mode_m2iob1);
-				//-$display("MADDR_DDR_CALC %h, STRIDE_CNT %d, MAP_NUM %d, LINE_NXT %d ", maddr_ddr_pre, 
-				//-stride_cnt, map_num, line_nxt_addr);
-				//-`endif
 		end
 	end
 assign rddr_size = |stride ? 3'h0 : 3'h4;
@@ -1116,11 +1140,16 @@ always @(posedge xclk or negedge xrst_n)
 reg [3:0] awfifo_out;
 wire [4:0] awfifo_data;
 wire [3:0] awfifo_rdata;
-assign awfifo_rdata = awfifo[aw_rptr_r];
-assign awfifo_data = awfifo_empty ? 5'h1f : awfifo_rdata;
+assign awfifo_rdata = awfifo[aw_rptr];
+//assign awfifo_data = awfifo_empty ? 5'h1f : awfifo_rdata;
+assign awfifo_data = awfifo_empty ? awnum : awfifo_rdata;
 
 assign awfifo_empty = aw_wptr == aw_rptr;
-assign awfifo_full = (aw_wptr - aw_rptr)>=2;
+//assign awfifo_full = ((aw_wptr - aw_rptr)>=2) & ((aw_wptr - aw_rptr)<=3);
+//
+wire [3:0] aw_bubble;
+assign aw_bubble = aw_wptr - aw_rptr;
+assign awfifo_full = (aw_bubble>=2) & (aw_bubble<=3);
 
 
 assign rddr_len_inc = rddr_len + 5'h1;
@@ -1419,7 +1448,7 @@ always @(posedge xclk or negedge xrst_n)
 			mwrite_ddr_data <= 1'b0;
 		end
 		else begin
-			if(~wready_s1 & mwrite_ddr_data)
+			if(~wready_m & mwrite_ddr_data)
 				mwrite_ddr_data <= mwrite_ddr_data;
 			else begin
 				mwrite_ddr_data <= dma_en_2m & ~afifo_empty & ~awfifo_empty;
@@ -1434,7 +1463,7 @@ always @(posedge xclk or negedge xrst_n)
             if(saccept_ddr & dma_en_2m) begin
                // mwrite_ddr <= 1'b1;
                 //if(mwrite_ddr)
-                if(wready_s1 & mwrite_ddr_data)
+                if(wready_m & mwrite_ddr_data)
                     arptr <= arptr + 'b1;
             end
         end
@@ -1461,12 +1490,12 @@ assign dma_done_ddr_awreq = mode_2m ?
 								((ddr_aw_req_cnt-maddr_ddr_start) >= (len_max<<1)))
 								: 1'b0; 
 assign dma_done_ddr_awreq_m1 = mode_2m ? ((ddr_aw_req_cnt-maddr_ddr_start+1)>=(len_max<<1)) &
-                                awready_s1 & mwrite_ddr :
+                                awready_m & mwrite_ddr :
                                 1'b0; 
 assign dma_done_ddr_wreq = mode_2m ? (ddr_wr_req_cnt-maddr_ddr_start) >= (len_max<<1) :
                                 1'b0; 
 assign dma_done_ddr_wreq_m1 = mode_2m ? ((ddr_wr_req_cnt-maddr_ddr_start+1)>=(len_max<<1)) & 
-                                wready_s1 & mwrite_ddr_data:
+                                wready_m & mwrite_ddr_data:
                                 1'b0; 
 //assign dma_done_ddr_rreq = |stride? (maddr_ddr_pre >= map_size) : mode_m2 ? 
 assign dma_done_ddr_rreq = |stride? sort_done : mode_m2 ? 
@@ -1532,15 +1561,63 @@ always @(posedge xclk or negedge xrst_n)
 		if(dma_done)
 			dma_finish <= 1'b0;
     end
-assign ex_zone_bias_wr_finish = mode_m2biasb & dma_done;
-assign ex_zone_wib_wr_finish = mode_m2wib & dma_done;
-assign ex_zone_wb_wr_finish = (mode_m2wb416|mode_m2wb256) & dma_done;
-assign init_inst_finish = mode_m2instb_r & dma_done;
-assign init_prot_finish = mode_m2instb_r & dma_done;
-assign zone3_wr_finish = (mode_m2iob0|mode_m2iob1) & dma_done & zone_en_s[3];
-assign zone2_wr_finish = (mode_m2iob0|mode_m2iob1) & dma_done & zone_en_s[2]; 
-assign zone1_rd_finish = (mode_iob02m|mode_iob12m) & dma_done & zone_en_s[1]; 
-assign zone0_rd_finish = (mode_iob02m|mode_iob12m) & dma_done & zone_en_s[0]; 
+
+//wire zone1_match_done;
+//wire zone2_match_done;
+//wire zone3_match_done;
+//wire zone4_match_done;
+//assign zone1_match_done = zone1_addr_match & dma_done;
+//assign zone2_match_done = zone2_addr_match & dma_done;
+//assign zone3_match_done = zone3_addr_match & dma_done;
+//assign zone4_match_done = zone4_addr_match & dma_done;
+
+//-assign ex_zone_bias_wr_finish = mode_m2biasb & dma_done;
+//-assign ex_zone_wib_wr_finish = mode_m2wib & dma_done;
+//-assign ex_zone_wb_wr_finish = (mode_m2wb416|mode_m2wb256) & dma_done;
+//-assign init_inst_finish = mode_m2instb_r & dma_done;
+//-assign init_prot_finish = mode_m2instb_r & dma_done;
+//-assign zone3_wr_finish = (mode_iob02m|mode_iob12m) & zone4_match_done & zone_en_s[3];
+//-assign zone2_wr_finish = (mode_iob02m|mode_iob12m) & zone3_match_done & zone_en_s[2]; 
+//-assign zone1_rd_finish = (mode_m2iob0|mode_m2iob1) & zone2_match_done & zone_en_s[1]; 
+//-assign zone0_rd_finish = (mode_m2iob0|mode_m2iob1) & zone1_match_done & zone_en_s[0]; 
+
+always @(posedge xclk or negedge xrst_n)
+	if(~xrst_n) begin
+		ex_zone_bias_wr_finish <= 1'b0;
+		ex_zone_wib_wr_finish <= 1'b0;
+		ex_zone_wb_wr_finish <= 1'b0;
+		init_inst_finish <= 1'b0;
+		init_prot_finish <= 1'b0;
+		zone3_wr_finish <= 1'b0;
+		zone2_wr_finish <= 1'b0;
+		zone1_rd_finish <= 1'b0;
+		zone0_rd_finish <= 1'b0;
+	end
+	else begin
+		if(dma_done_ddr & dma_done_sram) begin
+            ex_zone_bias_wr_finish <= mode_m2biasb;
+            ex_zone_wib_wr_finish <= mode_m2wib;
+            ex_zone_wb_wr_finish <= (mode_m2wb416|mode_m2wb256);
+            init_inst_finish <= mode_m2instb_r;
+            init_prot_finish <= mode_m2instb_r;
+            zone3_wr_finish <= (mode_iob02m|mode_iob12m) & zone4_addr_match & zone_en_s[3];
+            zone2_wr_finish <= (mode_iob02m|mode_iob12m) & zone3_addr_match & zone_en_s[2]; 
+            zone1_rd_finish <= (mode_m2iob0|mode_m2iob1) & zone2_addr_match & zone_en_s[1]; 
+            zone0_rd_finish <= (mode_m2iob0|mode_m2iob1) & zone1_addr_match & zone_en_s[0]; 
+		end
+		else begin
+		    ex_zone_bias_wr_finish <= 1'b0;
+		    ex_zone_wib_wr_finish <= 1'b0;
+		    ex_zone_wb_wr_finish <= 1'b0;
+		    init_inst_finish <= 1'b0;
+		    init_prot_finish <= 1'b0;
+		    zone3_wr_finish <= 1'b0;
+		    zone2_wr_finish <= 1'b0;
+		    zone1_rd_finish <= 1'b0;
+		    zone0_rd_finish <= 1'b0;
+		end
+	end
+
 //assign zone_addr_mismatch = ~zone_addr_match;
 assign zone_addr_mismatch = ~(zone1_addr_match | 
 							  zone2_addr_match |
@@ -1596,15 +1673,15 @@ assign zone_addr_mismatch = ~(zone1_addr_match |
   wire                                       rready;
 
 //assign ddr_respb = svalid_ddr & mready_ddr;
-//assign ddr_respb = (|stride ? (data_bit[15]&rvalid_s&rready_s) : svalid_ddr) & mready_ddr;
+//assign ddr_respb = (|stride ? (data_bit[15]&rvalid_m&rready_m) : svalid_ddr) & mready_ddr;
 assign ddr_respb = ( |stride ? (data_bit[15]) :
-				    ((bvalid_s1 & bready_s1) | (rvalid_s & ~fifo_m2_full))
+				    ((bvalid_m /*& bready_m*/) | (rvalid_m & ~fifo_m2_full))
 				   ) 
 				  // & mready_ddr
 				   ;
 //assign ddr_w_reqb = mwrite_ddr & saccept_ddr;
-assign ddr_aw_reqb = mwrite_ddr & awready_s1;
-assign ddr_w_reqb = mwrite_ddr_data & wready_s1;
+assign ddr_aw_reqb = mwrite_ddr & awready_m;
+assign ddr_w_reqb = mwrite_ddr_data & wready_m;
 //assign ddr_r_reqb = mread_ddr & saccept_ddr;
 assign ddr_r_reqb = mread_ddr & arready_in;
 assign ddr_wb = mwrite_ddr & saccept_ddr;
@@ -1623,44 +1700,45 @@ assign dma_en_m2m = dma_en & (mode_2m | mode_m2) | mode_m2instb_r;
 
 // AXI IF
 // Write Address Channel 1
-assign awid_m = 4'h0;
+assign awid_m = awid_cfg;
 assign awvalid_m = mwrite_ddr;
 assign awaddr_m = maddr_ddr[31:0];
 assign awlen_m = mlen_ddr;
 assign awsize_m = msize_ddr;
-assign awburst_m = 2'b01;
-assign awlock_m = 1'b0;
-assign awprot_m = 3'b010;
-assign awcache_m = 4'b0011;
+assign awburst_m = awburst_cfg;
+assign awlock_m = awlock_cfg;
+assign awprot_m = awprot_cfg;
+assign awcache_m = awcache_cfg;
 
 // Write Response Channel 1
-assign bready_s1 = 1'b1;
-assign wid_s1 = 4'h0;
-assign wdata_s1 = mdata_ddr;
-assign wvalid_s1 = mwrite_ddr_data;
-//assign wlast_s1 = wvalid_s1;
-//assign wlast_s1 = ~|wlast_cnt;
-assign wlast_s1 = ((mode_iob02m|mode_iob12m) & (dma_trans_len==1)) | (wlast_cnt>=awfifo_data);
+assign bready_m = 1'b1;
+assign wid_m = wid_cfg;
+assign wdata_m = mdata_ddr;
+assign wvalid_m = mwrite_ddr_data;
+//assign wlast_m = wvalid_m;
+//assign wlast_m = ~|wlast_cnt;
+assign wlast_m = mwrite_ddr_data & 
+		          (((mode_iob02m|mode_iob12m) & (dma_trans_len==1)) | (wlast_cnt>=awfifo_data));
 
 // Read Address Channel
-assign arid_s = 4'h0;
-assign arvalid_s = mread_ddr;
-assign araddr_s = |stride ? maddr_ddr_remap : maddr_ddr[31:0];
-assign arlen_s = rddr_len;
-assign arsize_s = rddr_size;
-assign arburst_s = 2'b01;
-assign arlock_s = 1'b0;
-assign arprot_s = 3'b010;
-assign arcache_s = 4'b0011;
+assign arid_m = arid_cfg;
+assign arvalid_m = mread_ddr;
+assign araddr_m = |stride ? maddr_ddr_remap : maddr_ddr[31:0];
+assign arlen_m = rddr_len;
+assign arsize_m = rddr_size;
+assign arburst_m = arburst_cfg;
+assign arlock_m = arlock_cfg;
+assign arprot_m = arprot_cfg;
+assign arcache_m = arcache_cfg;
 
 // Read Data Channel
-assign rready_s = ~fifo_m2_full;
-assign sdata_ddr = rdata_s;
+assign rready_m = ~fifo_m2_full;
+assign sdata_ddr = rdata_m;
 
 // GIF
-assign svalid_ddr = bvalid_s1 | rvalid_s;
-//assign saccept_ddr = wready_s1 | arready_in;
-assign saccept_ddr = awready_s1 | arready_in;
+assign svalid_ddr = bvalid_m | rvalid_m;
+//assign saccept_ddr = wready_m | arready_in;
+assign saccept_ddr = awready_m | arready_in;
 
 
 //DW_axi_gm U_gm(/*AUTOARG*/
@@ -1787,37 +1865,37 @@ assign saccept_ddr = awready_s1 | arready_in;
 //                   ,.awlock_s1(awlock_m)
 //                   ,.awcache_s1(awcache_m)
 //                   ,.awprot_s1(awprot_m)
-//                   ,.awready_s1(awready_s1)
+//                   ,.awready_s1(awready_m)
 //                   ,// SP Write Data Channel 1
-//                   .wvalid_s1(wvalid_s1)
-//                   ,.wid_s1(wid_s1)
-//                   ,.wdata_s1(wdata_s1)
-//                   ,.wstrb_s1(wstrb_s1)
-//                   ,.wlast_s1(wlast_s1)
-//                   ,.wready_s1(wready_s1)
+//                   .wvalid_s1(wvalid_m)
+//                   ,.wid_s1(wid_m)
+//                   ,.wdata_s1(wdata_m)
+//                   ,.wstrb_s1(wstrb_m)
+//                   ,.wlast_s1(wlast_m)
+//                   ,.wready_s1(wready_m)
 //                   ,// SP Write Response Channel 1
-//                   .bvalid_s1(bvalid_s1)
-//                   ,.bid_s1(bid_s1)
-//                   ,.bresp_s1(bresp_s1)
-//                   ,.bready_s1(bready_s1)
+//                   .bvalid_s1(bvalid_m)
+//                   ,.bid_s1(bid_m)
+//                   ,.bresp_s1(bresp_m)
+//                   ,.bready_s1(bready_m)
 //                   ,// SP Read Address Channel
-//                   .arvalid_s(arvalid_s)
-//                   ,.arid_s(arid_s)
-//                   ,.araddr_s(araddr_s)
-//                   ,.arlen_s(arlen_s)
-//                   ,.arsize_s(arsize_s)
-//                   ,.arburst_s(arburst_s)
-//                   ,.arlock_s(arlock_s)
-//                   ,.arcache_s(arcache_s)
-//                   ,.arprot_s(arprot_s)
+//                   .arvalid_s(arvalid_m)
+//                   ,.arid_s(arid_m)
+//                   ,.araddr_s(araddr_m)
+//                   ,.arlen_s(arlen_m)
+//                   ,.arsize_s(arsize_m)
+//                   ,.arburst_s(arburst_m)
+//                   ,.arlock_s(arlock_m)
+//                   ,.arcache_s(arcache_m)
+//                   ,.arprot_s(arprot_m)
 //                   ,.arready_in(arready_in)
 //                   ,// SP Read Data Channel
-//                   .rvalid_s(rvalid_s)
-//                   ,.rid_s(rid_s)
-//                   ,.rdata_s(rdata_s)
-//                   ,.rresp_s(rresp_s)
-//                   ,.rlast_s(rlast_s)
-//                   ,.rready_s(rready_s)
+//                   .rvalid_s(rvalid_m)
+//                   ,.rid_s(rid_m)
+//                   ,.rdata_s(rdata_m)
+//                   ,.rresp_s(rresp_m)
+//                   ,.rlast_s(rlast_m)
+//                   ,.rready_s(rready_m)
 //                   );
 //
 endmodule

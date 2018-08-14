@@ -29,11 +29,11 @@
 //  No distinction is made between read and write channels.
 `define GS_DW_gs1 256
 `define GS_DW_gs2 256
-`define GS_DW_gs3 512
-`define GS_DW_gs4 32
+`define GS_DW_gs3 32
+`define GS_DW_gs4 512
 `define GS_DW_gs5 32
-`define GS_DW_gs6 128
-`define GS_DW_gs7 512
+`define GS_DW_gs6 512
+`define GS_DW_gs7 128
 
 `define GS_WW (`GS_DW / 8 )
 

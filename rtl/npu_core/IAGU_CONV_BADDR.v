@@ -501,6 +501,8 @@ module IAGU_CONV_BADDR (
 
     assign c_PartFlag = {r_bFirstPart, r_bLastPart};
     //{c_PartFlag,r2_CurKerCol,r_InputCurCol,r_InputBaseAddr}
+`ifdef FPGA
+    
     //Fifo18X1K u_BaseAdderFifo (
     Fifo30x1K u_BaseAdderFifo (
         .clk         (i_clk),       // input wire clk
@@ -516,8 +518,78 @@ module IAGU_CONV_BADDR (
         // .data_count(),     // output wire [10 : 0] data_count
         // .wr_rst_busy(),    // output wire wr_rst_busy
         // .rd_rst_busy()     // output wire rd_rst_busy
-    );
+    ); 
+         
+`else 
+  localparam NUM_FIFOS = 1; // Controls how many fifos will be 
+                           // implemented. Maximum of 16.			 
+  localparam LOG2_DEPTH_P1 = 0; // Log base 2 of DEPTH + 10
+  wire [NUM_FIFOS-1:0] fifo_push_e_unconn, fifo_push_ae_unconn, fifo_push_hf_unconn, fifo_push_error_unconn;
+  wire [NUM_FIFOS*LOG2_DEPTH_P1-1:0] fifo_push_wc_unconn; 
+  wire [NUM_FIFOS-1:0] fifo_pop_e_unconn, fifo_pop_ae_unconn, fifo_pop_hf_unconn, fifo_pop_af_unconn, fifo_pop_error_unconn;
+  wire [NUM_FIFOS*LOG2_DEPTH_P1-1:0] fifo_pop_wc_unconn; 
+    
+bm_cpub_axi2top_DW_axi_x2x_bcm66 u_BaseAdderFifo (
+    .clk_push  (i_clk),       // input wire clk
+		.rst_push_n(i_rst_n),
+		.init_push_n(1'b1),
+		.push_req_n (~r_FifoWen),     // input wire wr_en
+		.data_in  ({c_PartFlag, r2_CurKerCol, r_InputCurCol, r_InputBaseAddr}),  
+     .push_empty      (fifo_push_e_unconn),
+     .push_ae         (fifo_push_ae_unconn),
+     .push_hf         (fifo_push_hf_unconn),
+		 .push_af (c_FifoAlmostFull),    // output wire almost_full
+     .push_error      (fifo_push_error_unconn),
+     .push_word_count (fifo_push_wc_unconn),
+		.clk_pop (i_clk),       // input wire clk
+		.rst_pop_n(i_rst_n),
+		.init_pop_n(1'b1),
+		.pop_req_n  (~i_Fifo_REn),    // input wire rd_en
+		.pop_empty (c_FifoEmpty),       // output wire empty
+      .pop_ae          (fifo_pop_e_unconn),
+      .pop_hf          (fifo_pop_ae_unconn),
+      .pop_af          (fifo_pop_hf_unconn),
+      .pop_full        (fifo_pop_af_unconn),
+      .pop_error       (fifo_pop_error_unconn),
+      .pop_word_count  (fifo_pop_wc_unconn),
+		.data_out ({o_PartFlag, o_KerCol, o_InputCurCol, o_BaseAddr}),    // output wire [17 : 0] dout
 
+		.test(1'b0)
+		);
+`endif
+/*
+//////////-----------------------------------------------------------------
+module bm_cpub_axi2top_DW_axi_x2x_bcm66(
+		clk_push,
+		rst_push_n,
+		init_push_n,
+		push_req_n,
+		data_in,
+		push_empty,
+		push_ae,
+		push_hf,
+		push_af,
+		push_full,
+		push_error,
+		push_word_count,
+
+		clk_pop,
+		rst_pop_n,
+		init_pop_n,
+		pop_req_n,
+		pop_empty,
+		pop_ae,
+		pop_hf,
+		pop_af,
+		pop_full,
+		pop_error,
+		pop_word_count,
+		data_out,
+
+		test
+		);
+//////////----------------------------------------------------------------  
+*/
     //CHN???????????????
     assign o_PreComp_Rdy = ~c_FifoEmpty;  
     

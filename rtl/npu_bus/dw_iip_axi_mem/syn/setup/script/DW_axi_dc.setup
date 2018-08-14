@@ -1,0 +1,6 @@
+# dc_shell setup variables for DW_axi
+set_app_var hdlin_infer_complex_set_reset true
+set_app_var suppress_errors {DDB-74 DDB-95 EQN-10 HDL-176 HDL-395 LINT-0 LINT-2 LINT-28 LINT-29 LINT-30 LINT-31 LINT-32 LINT-33 LINT-45 TIM-103 TIM-134 VER-61 VER-314 UCN-1 UIO-78 ELAB-349 LINT-52 OPT-1307 RCEX-076 DDC-9 OPT-301 LINT-60}
+set_app_var suppress_warnings {DDB-74 DDB-95 EQN-10 HDL-176 HDL-395 LINT-0 LINT-2 LINT-28 LINT-29 LINT-30 LINT-31 LINT-32 LINT-33 LINT-45 TIM-103 TIM-134 VER-61 VER-314 UCN-1 UIO-78 ELAB-349 LINT-52 OPT-1307 RCEX-076 DDC-9 OPT-301 LINT-60}
+set_app_var synlib_wait_for_design_license {DesignWare DC-Ultra-Opt DC-Ultra-Features}
+set_app_var template_parameter_style %d

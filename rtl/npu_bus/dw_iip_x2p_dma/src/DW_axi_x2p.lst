@@ -1,0 +1,28 @@
+// component: (top level)
+// library: work
+// files:
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_cc_constants.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_arb.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_bcm06.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_bcm07.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_bcm21.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_bcm05.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_bcm57.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_mux.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_cmd_queue.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_dcdr.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_first_last_strobe.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_power_ctrl_legacy.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_p.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_read_data_buffer.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_resp_buffer.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_s_addr_dcd.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_s_control.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_s_packer.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_s_response.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_s_unpack.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_s.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p_write_data_buffer.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p.v
+/home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p_dma/src/DW_axi_x2p-undef.v
+

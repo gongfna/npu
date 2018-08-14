@@ -170,23 +170,23 @@ U_IOB_upsize
 //assign wb_write = mwrite & (mode_m2wb256 | mode_m2wb416);
 assign wb_saccept = 1'b1;
 assign wb_cs = mode_m2wb256 | mode_m2wb416;
-defparam U_WB_downsize.DWIDTH_S=DWIDTH;
-defparam U_WB_downsize.DWIDTH_D=32;
-defparam U_WB_downsize.DWADDR  =AW_WB;
-xConverter_downsize 
-U_WB_downsize
-( .xclk(xclk), 
-  .xreset_n(xreset_n), 
-  .mready(mready), 
-  .mwrite(mwrite), 
-  .mdata(mdata), 
-  .maddr(maddr),
-  .mwstrb(mwstrb[DWIDTH/8-1:0]), 
-  .mdatao(/*wb_wdata*/), 
-  .addro(/*wb_addr*/),
-  .wstrb(/*wb_wstrb*/), 
-  .saccept(/*wb_saccept*/)
-);
+//defparam U_WB_downsize.DWIDTH_S=DWIDTH;
+//defparam U_WB_downsize.DWIDTH_D=32;
+//defparam U_WB_downsize.DWADDR  =AW_WB;
+//-xConverter_downsize 
+//-U_WB_downsize
+//-( .xclk(xclk), 
+//-  .xreset_n(xreset_n), 
+//-  .mready(mready), 
+//-  .mwrite(mwrite), 
+//-  .mdata(mdata), 
+//-  .maddr(maddr),
+//-  .mwstrb(mwstrb[DWIDTH/8-1:0]), 
+//-  .mdatao(/*wb_wdata*/), 
+//-  .addro(/*wb_addr*/),
+//-  .wstrb(/*wb_wstrb*/), 
+//-  .saccept(/*wb_saccept*/)
+//-);
 xConverter_wb_upsize U_WB_upsize
 ( .xclk(xclk), 
   .xreset_n(xreset_n), 

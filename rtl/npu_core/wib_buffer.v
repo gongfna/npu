@@ -34,7 +34,7 @@ module wib_buffer#(
     //external data input port for axi bram controller
 	output [31:0] o_wib_bramctl_rdata, 
     input  [31:0] i_wib_bramctl_wdata, 
-    input  [11:0] i_wib_bramctl_addr, 
+    input  [9:0] i_wib_bramctl_addr, 
     input         i_wib_bramctl_we, 
     input  [3:0]  i_wib_bramctl_be, 
     input         i_wib_bramctl_en

@@ -229,12 +229,22 @@ clock_gater U_ctrl_gater(
   .tst_gatedclock(1'b0)
 );
 reg [6-1:0] ctrl;
-always @(posedge ctrl_wr or negedge preset_n)
+//-always @(posedge ctrl_wr or negedge preset_n)
+//-	if(~preset_n) begin
+//-		ctrl <= {6{1'b0}};
+//-	end
+//-	else begin
+//-		ctrl <= pwdata[6-1:0];
+//-	end
+always @(posedge pclk or negedge preset_n)
 	if(~preset_n) begin
 		ctrl <= {6{1'b0}};
 	end
 	else begin
-		ctrl <= pwdata[6-1:0];
+		if(dma_regs_wr_en[0])
+			ctrl <= pwdata[6-1:0];
+		else
+			ctrl[2:0] <= 3'b0;
 	end
 wire [6-1:0] ctrl_s;
 gsync_ar #(6)U_ctrl_sync(//Output
@@ -256,7 +266,7 @@ clock_gater U_imr_gater(
 reg [10-1:0] imr;
 always @(posedge imr_wr or negedge preset_n)
 	if(~preset_n) begin
-		imr <= {10{1'b0}};
+		imr <= {10{1'b1}};
 	end
 	else begin
 		imr <= pwdata[10-1:0];

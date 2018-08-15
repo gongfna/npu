@@ -1,1 +1,0 @@
-SDC file for netlist

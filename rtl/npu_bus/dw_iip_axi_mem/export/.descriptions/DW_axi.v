@@ -1,1 +1,0 @@
-Netlist of top design

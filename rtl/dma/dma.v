@@ -401,7 +401,7 @@ U_xDMA_CFG
   .zone0_rd_finish(zone0_rd_finish), 
   //- STATUS
   .npu_idle(i_npu_idle), 
-  .sw_rst_finish(1'b1), 
+  .sw_rst_finish(1'b0), 
   .init_prot_finish(init_prot_finish), 
   .zone_addr_mismatch(zone_addr_mismatch), 
   .inst_dec_exception(inst_dec_exception), 

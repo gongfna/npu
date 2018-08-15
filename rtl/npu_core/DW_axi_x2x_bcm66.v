@@ -182,7 +182,7 @@ wire a_mem_rst_n, s_mem_rst_n;
        );
 
 */
- s40dpsf_npu_1024x30      
+ S40DPRF_NPU_1024X30
          #(
         .BITS(30),
         .WORDS(1024)

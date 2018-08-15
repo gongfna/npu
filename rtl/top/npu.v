@@ -202,6 +202,7 @@ module npu
 
 
 );
+`ifdef XDMA_AXI_DEBUG_SLAVE
   // APB
   wire [31:0] paddr;
   wire [31:0] pwdata;
@@ -209,6 +210,7 @@ module npu
   wire psel;
   wire penable;
   wire [31:0] prdata;
+`endif
   // IOB0 
   wire [DW_IOB-1:0] iob0_wdata; 
   wire [DW_IOB/8-1:0] iob0_wstrb; 
@@ -343,6 +345,7 @@ module npu
   wire o_interrupt; 
   wire sys_reset_n; 
   wire axi_wr_buf_en;
+`ifdef XDMA_AXI_DEBUG_SLAVE
 `GENE_WIRE_DCLA(gs1)
 `GENE_WIRE_DCLA(gs2)
 `GENE_WIRE_DCLA(gs3)
@@ -350,6 +353,7 @@ module npu
 `GENE_WIRE_DCLA(gs5)
 `GENE_WIRE_DCLA(gs6)
 `GENE_WIRE_DCLA(gs7)
+`endif
 //--------------------
 //-assign i_b_stream = 1'b0;
 //-`ifdef DEBUG

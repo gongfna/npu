@@ -1,1 +1,0 @@
-../syn/final/db/DW_axi.sdc

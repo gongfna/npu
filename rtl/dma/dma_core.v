@@ -216,7 +216,7 @@ wire sram_w_reqb;
 wire dma_en;
 wire dma_en_2m;
 wire dma_en_m2;
-wire dma_en_m2m;
+//wire dma_en_m2m;
 //wire mwrite_ddr;
 reg mwrite_ddr;
 reg mread_ddr;
@@ -285,13 +285,16 @@ wire mode_m2;
 wire mode_2m;
 //wire [31:0] maddr_sram_start;
 wire [31:0] maddr_ddr_start;
-//reg mode_m2instb_r;
+reg mode_m2instb_r2;
 always @(posedge xclk or negedge xrst_n) 
     if(~xrst_n) begin
 		mode_m2instb_r <= 1'b0;
+		mode_m2instb_r2 <= 1'b0;
 	end
 	else begin
-		if(dma_done)
+		mode_m2instb_r2 <= mode_m2instb_r;
+		//if(dma_done)
+		if(dma_done_ddr & dma_done_sram)
 			mode_m2instb_r <= 1'b0;
 		else if(mode_m2instb)
 			mode_m2instb_r <= 1'b1;
@@ -434,7 +437,7 @@ always @(posedge xclk or negedge xrst_n)
 		else if(dma_done)
 			ex_dma_lvl <= 1'b0;
 	end
-wire mready_ddr;
+//wire mready_ddr;
 assign mready_sram = (((ex_dma_lvl|mode_m2instb_r) & mode_m2) | (ex_dma_lvl & mode_2m)) & 
                     zone_trans & 
                     saccept_ddr & 
@@ -597,7 +600,8 @@ always @(posedge xclk or negedge xrst_n)
 				//	mread_ddr <= 1'b0;
 				//end
 				//else begin
-					mread_ddr <= dma_en_m2 & ~|mread_ddr_cnt;
+					mread_ddr <= (dma_en & mode_m2 | mode_m2instb_r & mode_m2instb_r2) & 
+					             ~|mread_ddr_cnt;
 				//end
 			end
 		end
@@ -805,9 +809,9 @@ assign mwstrb_ddr = 32'hffff_ffff;
 //                    zone_trans & 
 //                    saccept_sram & 
 //                    ~dma_done;
-assign mready_ddr = dma_en_m2m &
-                    (~mode_2m | ~afifo_empty) &
-                    ~dma_done;
+//assign mready_ddr = dma_en_m2m &
+//                    (~mode_2m | ~afifo_empty) &
+//                    ~dma_done;
 
 
 assign mid_ddr = 4'b0;
@@ -1693,7 +1697,8 @@ assign sram_r_reqb = mread_sram & saccept_sram;
 assign dma_en = ex_dma_r2 & zone_trans;
 assign dma_en_2m = dma_en & mode_2m;
 assign dma_en_m2 = dma_en & mode_m2 | mode_m2instb_r;
-assign dma_en_m2m = dma_en & (mode_2m | mode_m2) | mode_m2instb_r;
+//assign dma_en_m2 = dma_en & mode_m2 | mode_m2instb_r2;
+//assign dma_en_m2m = dma_en & (mode_2m | mode_m2) | mode_m2instb_r;
 // 1. mode_2m logic done.
 // 2. mode_m2 logic continue
 

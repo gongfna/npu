@@ -1,0 +1,15 @@
+../../rtl/npu_bus/dw_iip_gs256/src/DW_axi_gs_cc_constants.v 
+../../rtl/npu_bus/dw_iip_gs256/src/DW_axi_gs_constants.v 
+../../rtl/npu_bus/dw_iip_gs256/src/DW_axi_gs_bcm_params.v 
+../../rtl/npu_bus/dw_iip_gs256/src/DW_axi_gs_bcm57.v 
+../../rtl/npu_bus/dw_iip_gs256/src/DW_axi_gs_bcm06.v 
+../../rtl/npu_bus/dw_iip_gs256/src/DW_axi_gs_bcm65.v
+../../rtl/npu_bus/dw_iip_gs256/src/DW_axi_gs_fifo.v
+../../rtl/npu_bus/dw_iip_gs256/src/DW_axi_gs_sm.v
+../../rtl/npu_bus/dw_iip_gs256/src/DW_axi_gs_exclusive.v
+../../rtl/npu_bus/dw_iip_gs256/src/DW_axi_gs_req.v
+../../rtl/npu_bus/dw_iip_gs256/src/DW_axi_gs_resp.v
+../../rtl/npu_bus/dw_iip_gs256/src/DW_axi_gs_tl.v
+../../rtl/npu_bus/dw_iip_gs256/src/DW_axi_gs.v
+../../rtl/npu_bus/dw_iip_gs256/src/DW_axi_gs-undef.v
+

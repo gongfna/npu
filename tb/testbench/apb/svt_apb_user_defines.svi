@@ -1,0 +1,6 @@
+ 
+ `define SVT_APB_PADDR_WIDTH 8
+ `define SVT_APB_PWDATA_WIDTH 32
+ `define SVT_APB_PRDATA_WIDTH 32
+ `define SVT_APB_MAX_NUM_SLAVES_1
+

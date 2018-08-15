@@ -1,0 +1,6 @@
+../testbench/apb/cust_svt_apb_system_configuration.sv
+../testbench/axi/cust_svt_axi_system_configuration.sv
+../testbench/npu_sys_tr.sv
+../testbench/npu_sys_mon.sv
+../testbench/npu_sys_scb.sv
+../testbench/npu_sys_env.sv

@@ -1,0 +1,6 @@
+ 
+ `define SVT_AXI_MAX_ADDR_WIDTH 32
+ `define SVT_AXI_MAX_DATA_WIDTH 128
+
+ //`define SVT_AXI_MAX_NUM_MASTERS_0
+

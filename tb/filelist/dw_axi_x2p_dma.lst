@@ -1,0 +1,28 @@
+// component: (top level)
+// library: work
+// files:
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_cc_constants.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_arb.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_bcm06.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_bcm07.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_bcm21.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_bcm05.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_bcm57.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_mux.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_cmd_queue.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_dcdr.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_first_last_strobe.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_power_ctrl_legacy.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_p.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_read_data_buffer.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_resp_buffer.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_s_addr_dcd.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_s_control.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_s_packer.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_s_response.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_s_unpack.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_s.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p_write_data_buffer.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p.v
+../../rtl/npu_bus/dw_iip_x2p_dma/src/DW_axi_x2p-undef.v
+

@@ -1,0 +1,13 @@
+-f ../filelist/dw_axi_mem.lst
+-f ../filelist/dw_axi_gs32.lst
+-f ../filelist/dw_axi_gs128.lst
+-f ../filelist/dw_axi_gs256.lst
+-f ../filelist/dw_axi_gs512.lst
+-f ../filelist/dw_axi_x2x32.lst
+-f ../filelist/dw_axi_x2x128.lst
+-f ../filelist/dw_axi_x2x256.lst
+-f ../filelist/dw_axi_x2x512.lst
+-f ../filelist/dw_axi_x2p_dma.lst
+-f ../filelist/rtl.lst
+#-f ../filelist/tb.lst
+#-f ../filelist/tc.lst

@@ -1,0 +1,12 @@
+../testcase/apb_seq.sv
+../testcase/axi_slv_seq.sv
+../testcase/base_seq.sv
+../testcase/base_test.sv
+../testcase/npu_apb_seq.sv
+../testcase/npu_axi_slv_seq.sv
+../testcase/npu_axi_mst_seq.sv
+../testcase/npu_test.sv
+../testcase/debug_apb_seq.sv
+../testcase/debug_axi_slv_seq.sv
+../testcase/debug_axi_mst_seq.sv
+../testcase/debug_test.sv

@@ -17,6 +17,7 @@ vericom \
 -f ../filelist/dw_axi_x2x256.lst \
 -f ../filelist/dw_axi_x2x512.lst \
 -f ../filelist/dw_axi_x2p_dma.lst \
+-f ../filelist/dw_axi_x2x_dma_m.lst \
 ../testbench/tb_top.sv +define+XDMA_AXI_DEBUG_SLAVE+$DEBUG_SLV+$FPGA
 
 #../bench/tb_top.sv +define+DEBUG_SLV+XDMA_AXI_DEBUG_SLAVE

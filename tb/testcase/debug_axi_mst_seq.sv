@@ -52,8 +52,9 @@ class debug_axi_mst_seq extends svt_axi_master_base_sequence;
 		//-buffer_addr.push_back(32'h1000_0000);
 		//-buffer_addr.push_back(32'h1200_0000);
 		//-buffer_addr.push_back(32'h1400_0000);
+		buffer_addr.push_back(32'h0170_0004); buffer_data.push_back(32'h0000_03ff);
 		buffer_addr.push_back(32'h0170_0034); buffer_data.push_back(32'h0000_0000);
-		buffer_addr.push_back(32'h0170_0038); buffer_data.push_back(32'h0000_0008);
+		buffer_addr.push_back(32'h0170_003c); buffer_data.push_back(32'h0000_0008);
 		buffer_addr.push_back(32'h0170_0000); buffer_data.push_back(32'h0000_0004);
 	    //@(posedge tb_top.DUT.U_DMA.U_xDMA_CFG.init_inst_finish);
 		//buffer_addr.push_back(32'h0170_0000); buffer_data.push_back(32'h0000_0001);
@@ -105,10 +106,13 @@ class debug_axi_mst_seq extends svt_axi_master_base_sequence;
       		/** Wait for the write transaction to complete */
       		get_response(rsp);
 		end //for
-	    @(posedge tb_top.DUT.U_DMA.U_xDMA_CFG.init_inst_finish);
+	    //@(posedge tb_top.DUT.U_DMA.U_xDMA_CFG.o_interrupt);
 
+		buffer_addr.push_back(32'h0170_0048); buffer_data.push_back(32'h048c_1123);
+		buffer_addr.push_back(32'h0170_000c); buffer_data.push_back(32'h0000_0400);
 		buffer_addr.push_back(32'h0170_0034); buffer_data.push_back(32'h0000_0000);
-		buffer_addr.push_back(32'h0170_0038); buffer_data.push_back(32'h0000_0008);
+		buffer_addr.push_back(32'h0170_0038); buffer_data.push_back(32'h0000_0020);
+		buffer_addr.push_back(32'h0170_003c); buffer_data.push_back(32'h0000_0008);
 		buffer_addr.push_back(32'h0170_0000); buffer_data.push_back(32'h0000_0004);
 	    //@(posedge tb_top.DUT.U_DMA.U_xDMA_CFG.init_inst_finish);
 		//buffer_addr.push_back(32'h0170_0000); buffer_data.push_back(32'h0000_0001);
@@ -214,6 +218,7 @@ class debug_axi_mst_seq extends svt_axi_master_base_sequence;
 		end //for
 
 
+		buffer_addr.push_back(32'h0170_004c); 
 		buffer_addr.push_back(32'h0000_0000); 
 		buffer_addr.push_back(32'h0020_0000);
 		//buffer_addr.push_back(32'h0040_0000);

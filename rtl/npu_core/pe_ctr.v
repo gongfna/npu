@@ -32,15 +32,20 @@ module pe_ctr #(
 ) (
     input  wire                                 i_clk               ,
     input  wire                                 i_rst_n             ,
-    input  wire[2:0]                            i_npe_mode          ,
+    input  wire[3:0]                            i_npe_mode          ,
     input  wire                                 i_mdata_vld         ,
     input  wire                                 i_wdata_vld         ,
     input  wire[6:0]                            i_pe_en             ,
     input  wire                                 i_pe_conv_out       ,
     input  wire                                 i_pe_fc_out         ,
     input  wire                                 i_pe_max_out        ,
-    input  wire                                i_sorter_out,////////////////////////////////////
+    input  wire                                 i_PE_DOT_out   ,
+    input  wire
+                                 i_PE_DOTACC_out,
+    input  wire                                 i_sorter_out,////////////////////////////////////
     input  wire									i_sorter_op,/////////////////////////////////
+    input  wire                               i_dot_en,
+    input  wire                               i_dotacc_en,
     output reg [DATA_COPIES*2*DATA_WIDTH-1:0]   o_npe_result        ,
     output wire                                 o_npe_result_vld    ,
     output wire[6:0]                            o_pe_mac_ld_en      ,
@@ -86,22 +91,35 @@ module pe_ctr #(
     reg                                         add_mode            ;
     reg                                         acc_mode            ;
     reg 											sorter_mode;
+    wire                                      dot_mode;
+    wire                                     dot_acc_mode;
+    reg                                      matrix_mode;
     reg [6:0]                                   r_compute_pe_en[5:0];
     wire[6:0]                                   compute_pe_en       ;
     wire c_sorter_oen;
+    
+    assign dot_mode = i_dot_en;
+    assign dot_acc_mode = i_dotacc_en;
     always @(*) begin
         mac_mode = 1'b0;
         fc_mode  = 1'b0;
         max_mode = 1'b0;
         add_mode = 1'b0;
         acc_mode = 1'b0;
+        //dot_mode = 1'b0;
+        //dot_acc_mode = 1'b0;
+        matrix_mode = 1'b0;
       
         case (i_npe_mode) 
-            3'h1    : mac_mode = 1'b1;
-            3'h4    : max_mode = 1'b1;
-            3'h2    : fc_mode  = 1'b1;
-            3'h3    : add_mode = 1'b1;
-            3'h5    : acc_mode = 1'b1;////////////////////add by htt
+            4'h1    : mac_mode = 1'b1;
+            4'h4    : max_mode = 1'b1;
+            4'h2    : fc_mode  = 1'b1;
+            4'h6    : fc_mode  = 1'b1;
+            4'h3    : add_mode = 1'b1;
+            4'h5    : acc_mode = 1'b1;////////////////////add by htt
+            4'h6    : matrix_mode = 1'b1;
+         //   4'h7    : dot_mode = 1'b1;////////////////////add by htt
+          //  4'h8    : dot_acc_mode = 1'b1;////////////////////add by htt
         endcase
     end
     always @(posedge i_clk) begin
@@ -119,7 +137,7 @@ module pe_ctr #(
                             r_compute_pe_en[1][2], 
                             r_compute_pe_en[0][1], 
                             i_pe_en[0]};
-    assign o_pe_mac_en = compute_pe_en & ({{6{mac_mode}}, mac_mode | fc_mode});
+    assign o_pe_mac_en = compute_pe_en & ({{6{mac_mode}}, mac_mode | fc_mode| matrix_mode|dot_mode|dot_acc_mode});
     assign o_pe_max_en = max_mode;
     assign o_pe_add_en = add_mode;
     assign o_pe_acc_en = acc_mode;
@@ -145,7 +163,7 @@ module pe_ctr #(
     end
     assign load_cstate = r_load_cstate;    
     assign o_pe_mac_ld_en = mac_mode ? (load_cstate & {7{i_mdata_vld}}) : 
-                          ((max_mode | fc_mode | add_mode | acc_mode) ? {6'h0, i_mdata_vld} : 7'h0);
+                          ((max_mode | fc_mode|matrix_mode | add_mode | acc_mode|dot_mode|dot_acc_mode) ? {6'h0, i_mdata_vld} : 7'h0);
 
     reg [6:0]                                   r_output_cstate ;
     reg [6:0]                                   c_output_nstate ;
@@ -181,7 +199,7 @@ module pe_ctr #(
     end
     assign output_cstate = r_output_cstate;
     assign c_pe_mac_oen = mac_mode ? (output_cstate & {output_pe_en[6:1], output_pe_en[0] & i_pe_conv_out}) :
-                         (fc_mode ? {6'h0, i_pe_en[0] & i_pe_fc_out} : 7'h0);
+                         ((fc_mode||matrix_mode || dot_mode || dot_acc_mode) ? {6'h0, i_pe_en[0] & (i_pe_fc_out || i_PE_DOT_out ||i_PE_DOTACC_out)} : 7'h0);
     reg                                         r_wdata_vld     ; 
     always @(posedge i_clk) begin
         r_pe_mac_oen <= c_pe_mac_oen;

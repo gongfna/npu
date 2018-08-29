@@ -61,7 +61,6 @@ reg [3:0] wptr;
 reg wb_write;
 reg mode_m2wb256_r;
 reg mode_m2wb416_r;
-wire full;
 assign wb_wstrb = mode_m2wb416 ? {DSTRBD{1'b1}} : {160'h0,{256{1'b1}}};
 // 0 4 8 12
 //   3 7 11 

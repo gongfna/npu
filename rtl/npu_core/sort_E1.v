@@ -112,7 +112,7 @@ wire [Index_Width + Data_Width - 1 :0] max_out_L;
 wire [Index_Width + Data_Width - 1 :0] max_out_H;
 reg [2:0] cur_state ;
 reg [2:0] next_state;
-always @(posedge sys_clk, negedge sys_rst_n)
+always @(posedge sys_clk or negedge sys_rst_n)
 begin
 	if(!sys_rst_n)
 	begin 
@@ -278,16 +278,16 @@ end
 
 
 
-always @(posedge sys_clk, negedge sys_rst_n)
+always @(posedge sys_clk or negedge sys_rst_n)
 begin
 	if(!sys_rst_n)
 	begin
 		cur_state  <= 3'b0;
-		next_state <= 3'b0;
+		//next_state <= 3'b0;
 	end else if(sorter_clr)
 	begin
 	    cur_state  <= 3'b0;
-		next_state <= 3'b0;
+		//next_state <= 3'b0;
 		end
 	else begin
 		cur_state <= next_state;
@@ -307,11 +307,11 @@ begin
 	ITERATION2: next_state = ITERATION3;
 	ITERATION3: next_state = ITERATION4;
 	ITERATION4: next_state = IDLE;
-	default: next_state = 3'bx;
+	default: next_state = IDLE;
 	endcase
 end
 
-always @(posedge sys_clk, negedge sys_rst_n)
+always @(posedge sys_clk or negedge sys_rst_n)
 begin
 	if(!sys_rst_n)
 	begin

@@ -15,7 +15,7 @@ Hierarchy:
 	       |
 	       |----> xDMA_apb_if
 	       |
-	       |----> xDMA_core
+	       |----> U_DMA_CORE
 	       |
 	       |----> 
 	       |
@@ -122,7 +122,10 @@ module dma
   input inst_work_state, 
   input [7:0] i_line_size, 
   input [1:0] i_stride,
-  input [1:0] i_pad_num, 
+//  input [1:0] i_pad_num, 
+  input [1:0] i_single_pad, 
+  input [1:0] i_double_pad, 
+  input i_reorg_type, 
 //- AXI MASTER
   input aclk_m, 
   input aresetn_m, 
@@ -181,6 +184,10 @@ module dma
   input xrst_n
 );
 //- xdma core
+wire [1:0] rresp; 
+wire [3:0] rid; 
+wire [1:0] bresp; 
+wire [3:0] bid; 
 wire dma_done; 
 wire [31:0] dma_src_addr;
 wire [31:0] dma_dst_addr; 
@@ -189,7 +196,10 @@ wire b_stream;
 wire ex_dma;
 wire [7:0] line_size; 
 wire [1:0] stride;
-wire [1:0] pad_num; 
+//wire [1:0] pad_num; 
+wire [1:0] single_pad; 
+wire [1:0] double_pad; 
+wire reorg_type;
 wire [31:0] zone1_addr_s;
 wire [31:0] zone1_size_s;
 wire [31:0] zone2_addr_s;
@@ -200,6 +210,7 @@ wire [31:0] zone4_addr_s;
 wire [31:0] zone4_size_s;
 wire [3:0] zone_en_s;
 wire [31:0] src_addr_s;
+wire [31:0] dst_addr_s;
 wire [31:0] inst_depth_s;
 wire [3:0] awid_cfg; 
 wire [1:0] awburst_cfg; 
@@ -348,7 +359,10 @@ U_xDMA_CFG
   .i_ex_dma(i_ex_dma), 
   .i_line_size(i_line_size), 
   .i_stride(i_stride), 
-  .i_pad_num(i_pad_num), 
+  //.i_pad_num(i_pad_num), 
+  .i_single_pad(i_single_pad), 
+  .i_double_pad(i_double_pad), 
+  .i_reorg_type(i_reorg_type), 
   //- xdma core
   .dma_done(dma_done), 
   .dma_src_addr(dma_src_addr), 
@@ -358,7 +372,10 @@ U_xDMA_CFG
   .ex_dma(ex_dma), 
   .line_size(line_size), 
   .stride(stride), 
-  .pad_num(pad_num), 
+  //.pad_num(pad_num), 
+  .single_pad(single_pad), 
+  .double_pad(double_pad), 
+  .reorg_type(reorg_type), 
   .zone1_addr_s(zone1_addr_s),
   .zone1_size_s(zone1_size_s),
   .zone2_addr_s(zone2_addr_s),
@@ -369,6 +386,7 @@ U_xDMA_CFG
   .zone4_size_s(zone4_size_s),
   .zone_en_s(zone_en_s),
   .src_addr_s(src_addr_s),
+  .dst_addr_s(dst_addr_s),
   .inst_depth_s(inst_depth_s),
   .awid_cfg(awid_cfg), 
   .awburst_cfg(awburst_cfg), 
@@ -388,6 +406,11 @@ U_xDMA_CFG
   .axi_wr_buf_en(axi_wr_buf_en), 
   .npu_stop(npu_stop), 
   .npu_start(npu_start), 
+  //- axi_status
+  .rresp(rresp), 
+  .rid(rid), 
+  .bresp(bresp), 
+  .bid(bid), 
   //- IRR
   .internal_stop(i_internal_stop), 
   .ex_zone_bias_wr_finish(ex_zone_bias_wr_finish), 
@@ -434,9 +457,15 @@ U_DMA_CORE
 .dma_trans_len(dma_trans_len), 
 .b_stream(b_stream), 
 .ex_dma(ex_dma), 
-.line_size(line_size), 
-.stride(stride), 
-.pad_num(pad_num), 
+//.line_size(line_size), 
+.line_size(7), 
+//.stride(stride), 
+.stride(|stride ? stride-1:0), 
+//.pad_num(pad_num), 
+//.single_pad(single_pad), 
+.single_pad(2'b01), 
+.double_pad(double_pad), 
+.reorg_type(reorg_type), 
 .zone1_addr_s(zone1_addr_s),
 .zone1_size_s(zone1_size_s),
 .zone2_addr_s(zone2_addr_s),
@@ -447,6 +476,7 @@ U_DMA_CORE
 .zone4_size_s(zone4_size_s),
 .zone_en_s(zone_en_s),
 .src_addr_s(src_addr_s),
+.dst_addr_s(dst_addr_s),
 .inst_depth_s(inst_depth_s),
 .awid_cfg(awid_cfg), 
 .awburst_cfg(awburst_cfg), 
@@ -462,6 +492,11 @@ U_DMA_CORE
 .mode_m2instb(mode_m2instb),
 .mode_m2instb_r(mode_m2instb_r),
 .dma_mode(dma_mode), 
+//- axi_status
+.rresp_r(rresp), 
+.rid_r(rid), 
+.bresp_r(bresp), 
+.bid_r(bid), 
 //- IRR
 .ex_zone_bias_wr_finish(ex_zone_bias_wr_finish), 
 .ex_zone_wib_wr_finish(ex_zone_wib_wr_finish), 

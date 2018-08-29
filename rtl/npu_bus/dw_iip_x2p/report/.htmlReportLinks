@@ -1,1 +1,1 @@
-set ::sHtml::reports(MemoryAddressMaps) [list {Memory Address Maps} {APB Memory Address Maps} /home/mzm/git_work/npu/rtl/coreC/dw_iip_x2p/report/address_map.html]
+set ::sHtml::reports(MemoryAddressMaps) [list {Memory Address Maps} {APB Memory Address Maps} /home/mzm/temp/npu_0820_v1p3/npu/rtl/npu_bus/dw_iip_x2p/report/address_map.html]

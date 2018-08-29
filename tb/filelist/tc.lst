@@ -10,3 +10,6 @@
 ../testcase/debug_axi_slv_seq.sv
 ../testcase/debug_axi_mst_seq.sv
 ../testcase/debug_test.sv
+../testcase/yolo_axi_slv_seq.sv
+../testcase/yolo_axi_mst_seq.sv
+../testcase/tc_yolo.sv

@@ -29,7 +29,7 @@ module bias #(
     input i_calc_en,
     input [511:0] i_npe_dat_out,
     input i_npe_dat_vld,
-    input [7:0] i_part_num,
+    input [4:0] i_part_num,
     input       i_pe_out_en,
     input [7:0] i_output_layers,
     input [7:0] i_addr_start_b,

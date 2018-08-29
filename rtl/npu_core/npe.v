@@ -28,19 +28,28 @@ module npe #(
 ) (
     input  wire                                             i_clk           ,
     input  wire                                             i_rst_n         ,
-    input  wire[2:0]                                        i_npe_mode      ,
+    input  wire[3:0]                                        i_npe_mode      ,
     input  wire                                             i_sorter_op     ,
     input  wire[DATA_COPIES*(DATA_WIDTH+INDEX_WIDTH)-1:0]   i_wdata         ,
     input  wire                                             i_wdata_vld     ,
     input  wire[DATA_COPIES*DATA_WIDTH-1:0]                 i_mdata         ,
     input  wire                                             i_mdata_vld     ,
+    input  wire[DATA_COPIES*DATA_WIDTH-1:0]                 i_mdata1         ,
+    input  wire                                             i_mdata_vld1     ,
     output wire[DATA_COPIES*2*DATA_WIDTH-1:0]               o_npe_result    ,
     output wire                                             o_npe_result_vld,
     input  wire                                             i_pe_conv_out   ,
     input  wire[6:0]                                        i_pe_en         ,
     input  wire                                             i_pe_max_out    ,
     input  wire                                             i_pe_fc_out, 
-    input  wire [4:0]                                     last_line_sorter_num,  
+    input  wire                                             i_PE_DOT_out    ,
+    input  wire   
+                                          i_PE_DOTACC_out,
+    input  wire                           i_square_mode,
+    input  wire                        i_src_from2buffer,
+    input  wire                       i_dot_en,
+    input  wire                       i_dotacc_en,
+    input  wire [4:0]                                     last_line_sorter_num,
     input  wire                                             i_sorter_out   
 );
 
@@ -58,6 +67,7 @@ module npe #(
     wire  last_sort_o  ;
     wire  sorter_clr   ;
     wire  pe_acc_clear ;
+    wire  dot_en;
  //   wire  i_sorter_out ;
    wire[DATA_COPIES*(DATA_WIDTH+INDEX_WIDTH)-1:0]  wdata[7:0]      ;
     wire                                            wdata_vld[7:0]  ;
@@ -67,7 +77,9 @@ module npe #(
     wire[DATA_COPIES*2*DATA_WIDTH-1:0]              max_result      ;
     wire [DATA_COPIES*2*DATA_WIDTH-1:0] acc_result;
     wire[DATA_COPIES*2*DATA_WIDTH-1:0]              add_result      ;
-
+    wire [DATA_COPIES*DATA_WIDTH-1:0]  i_mdata_dot     ;
+    wire i_mdata_vld_dot ;
+    
 	pe_ctr # (
         .DATA_WIDTH             (DATA_WIDTH         ), 
         .DATA_COPIES            (DATA_COPIES        )
@@ -75,13 +87,17 @@ module npe #(
 		.i_clk                  (i_clk              ), 
 		.i_rst_n                (i_rst_n            ), 
 		.i_npe_mode             (i_npe_mode         ), 
-		.i_mdata_vld            (i_mdata_vld        ), 
+		.i_mdata_vld            (i_mdata_vld|i_mdata_vld1        ), 
 		.i_wdata_vld            (i_wdata_vld        ), 
 		.i_pe_en                (i_pe_en            ), 
 		.i_sorter_op 						(i_sorter_op),
+		.i_dot_en (i_dot_en),
+       .i_dotacc_en(i_dotacc_en),
 		.i_pe_conv_out          (i_pe_conv_out      ), 
 		.i_pe_fc_out            (i_pe_fc_out        ), 
 		.i_pe_max_out           (i_pe_max_out       ), 
+		.i_PE_DOT_out    (i_PE_DOT_out   ),
+		.i_PE_DOTACC_out (i_PE_DOTACC_out),
 		.i_sorter_out			(last_sort_o),///////////////////////////////
 		.o_npe_result           (o_npe_result       ), 
 		.o_npe_result_vld       (o_npe_result_vld   ), 
@@ -108,14 +124,38 @@ module npe #(
 	);
 
 //////////////////////////////////////////////////////////////////////////////////
-  
+    assign dot_en = i_dot_en | i_dotacc_en;
     assign wdata[0]     = i_wdata;
     assign wdata_vld[0] = i_wdata_vld;
-    assign mdata[0]     = i_mdata;
-    assign mdata_vld[0] = i_mdata_vld;    
+    assign mdata[0]     = dot_en ? i_mdata : (i_mdata|i_mdata1);
+    assign mdata_vld[0] = dot_en ? i_mdata : (i_mdata_vld|i_mdata_vld1); 
+    assign i_mdata_dot     = i_square_mode ? i_mdata : i_mdata1;
+    assign i_mdata_vld_dot = i_square_mode ? i_mdata_vld : i_mdata_vld1;
+     
+     //integer f_pe;
+     integer f_input;
+     
+      initial begin
+         f_input =  $fopen("check_input.txt");
+       //  r_debug_counter=20'd0;
+         forever begin
+             @(posedge i_clk)begin
+                 if(i_mdata_vld) begin
+                                                  $fdisplay(f_input, "\n\n%H", i_mdata);
+                                                   $fflush(f_input);
+                                               end
+                 if(i_wdata_vld) begin
+                    $fdisplay(f_input, "%H", i_wdata);
+                     $fflush(f_input);
+                 end
+                 
+               
+             end
+         end
+     end  
     genvar i;
     generate
-        for (i = 0; i < 7; i = i + 1) begin : inst_loop
+        for (i = 1; i < 7; i = i + 1) begin : inst_loop
             pe_mac # (
                 .DATA_WIDTH             (DATA_WIDTH         ), 
                 .DATA_COPIES            (DATA_COPIES        ),
@@ -138,7 +178,32 @@ module npe #(
             );
         end
     endgenerate
-    
+
+ pe_mac_dot # (
+                .DATA_WIDTH             (DATA_WIDTH         ), 
+                .DATA_COPIES            (DATA_COPIES        ),
+                .INDEX_WIDTH            (INDEX_WIDTH        )
+            ) pe_mac_inst0 (
+                .i_clk                  (i_clk              ), 
+                .i_rst_n                (i_rst_n            ), 
+                .i_wdata                (wdata[0]           ), 
+                .i_wdata_vld            (wdata_vld[0]       ), 
+                .i_mdata                (i_mdata           ), 
+                .i_mdata_vld            (i_mdata_vld    ), 
+                .i_mdata1               (i_mdata_dot           ), 
+                .i_mdata_vld1           (i_mdata_vld_dot    ), 
+                .o_wdata                (wdata[1]         ), 
+                .o_wdata_vld            (wdata_vld[1]     ), 
+                .o_mdata                (mdata[1]         ), 
+                .o_mdata_vld            (mdata_vld[1]     ), 
+                .o_mac_result           (mac_result[0]      ), 
+                .i_mac_clear            (pe_mac_clear[0]    ), 
+                .i_mac_en               (pe_mac_en[0]       ),
+                .i_src_from2buffer(i_src_from2buffer|i_square_mode),
+                .i_dot_en (i_dot_en),
+                .i_dotacc_en(i_dotacc_en),
+                .i_mac_id               (3'b0             )
+            );   
 //////////////////////////////////////////////////////////////////////////////////
    // 
 	pe_max # (
@@ -174,9 +239,9 @@ module npe #(
     reg                                             r_wdata_vld     ;
     //wire[DATA_COPIES*2*DATA_WIDTH-1:0]              add_result      ;
    // always @(posedge i_clk) begin
-      //  r_wdata     <= wdata[1];
-       // r_wdata_vld <= wdata_vld[1];
-    //end
+   //     r_wdata     <= wdata[1];
+   //     r_wdata_vld <= wdata_vld[1];
+   // end
 	pe_add # (
         .DATA_WIDTH             (DATA_WIDTH         ), 
         .DATA_COPIES            (DATA_COPIES        )

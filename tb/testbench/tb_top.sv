@@ -30,7 +30,7 @@ module tb_top();
 
     initial begin     		   
         pclk = 0;
-        forever #5 pclk = ~pclk; //100Mhz clock
+        forever #5 pclk = ~pclk; //100Mhz clock 0.5/0.1
     end
      
     initial begin
@@ -41,7 +41,7 @@ module tb_top();
 
     initial begin     		   
         aclk = 0;
-        forever #2 aclk = ~aclk; //250Mhz clock
+        forever #(0.5/0.4) aclk = ~aclk; //250Mhz clock 0.5/0.25
     end
      
     initial begin
@@ -52,7 +52,7 @@ module tb_top();
 
     initial begin     		   
         xclk = 0;
-        forever #2 xclk = ~xclk; //250Mhz clock
+        forever #(0.5/0.8) xclk = ~xclk; //250Mhz clock
     end
      
     initial begin
@@ -177,6 +177,7 @@ module tb_top();
 				 .slv_rlast				(axi_if.master_if[0].rlast	),
 				 .slv_rready				(axi_if.master_if[0].rready	), 
 				 //System IF
+				 .remap_n(1'b1), 
                  .xclk					(xclk				        ), 
                  .xrst_n				(xrst_n				        ) 
 				 );

@@ -123,14 +123,14 @@ module npu_core
     input          i_wib_bramctl_s_rst,  // Reset Signal (required)
 
 
-    input          i_lstmb_bramctl_en, // Chip Enable Signal (optional)
-    output[31:0]   o_lstmb_bramctl_rdata, // Data Out Bus (optional)
-    input [31:0]   i_lstmb_bramctl_wdata, // Data In Bus (optional)
-    input          i_lstmb_bramctl_we, // Byte Enables (optional)
-    input [3:0]    i_lstmb_bramctl_be, // Byte Enables (optional)
-    input [4:0]    i_lstmb_bramctl_addr, // Address Signal (required)                
-    input          i_lstmb_bramctl_s_clk, // Clock Signal (required)
-    input          i_lstmb_bramctl_s_rst,  // Reset Signal (required)
+    input          i_lstmb_bramctl_en    , // Chip Enable Signal (optional)
+    output[31:0]   o_lstmb_bramctl_rdata , // Data Out Bus (optional)
+    input [31:0]   i_lstmb_bramctl_wdata , // Data In Bus (optional)
+    input          i_lstmb_bramctl_we    , // Byte Enables (optional)
+    input [3:0]    i_lstmb_bramctl_be    , // Byte Enables (optional)
+    input [4:0]    i_lstmb_bramctl_addr  , // Address Signal (required)                
+    input          i_lstmb_bramctl_s_clk , // Clock Signal (required)
+    input          i_lstmb_bramctl_s_rst ,  // Reset Signal (required)
 
     // (* X_INTERFACE_PARAMETER = "MASTER_TYPE BRAM_CTRL,MEM_ECC NONE,MEM_WIDTH 32,MEM_SIZE 4096,READ_WRITE_MODE READ_WRITE" *)
     (* X_INTERFACE_PARAMETER = "MASTER_TYPE BRAM_CTRL" *)
@@ -170,9 +170,9 @@ module npu_core
      
 
   );
-    wire [2:0]c_mode;
+    wire [3:0]c_mode;
     reg r_enable;   
-    wire [11:0]c_addr_start_d,c_addr_start_s;
+    wire [15:0]c_addr_start_d,c_addr_start_d2,c_addr_start_s;
     wire [1:0]c_pad;
     wire [3:0]c_kernel;
     wire [1:0]c_stride;
@@ -194,18 +194,18 @@ module npu_core
     wire [3:0] c_o_q_encode;
     
     integer allcount;   
-    wire [11:0]c_addr_start_w;
+    wire [9:0]c_addr_start_w;
     wire [7:0]  c_addr_start_b; 
-    wire  [11:0] c_addr_start_s1 ;
-    wire  [11:0] c_addr_start_s2 ;
+    wire  [15:0] c_addr_start_s1 ;
+    wire  [15:0] c_addr_start_s2 ;
     
     
     wire  [127:0] c_inst  ;     
     wire  c_inst_valid    ;
     wire  [11:0] c_pc     ;    
     wire  c_instb_rd_en   ;
-    wire  c_buffer_flag   ;
-    wire  [2:0] c_last_part     ;  
+    wire  [1:0] c_buffer_flag   ;
+    wire  [3:0] c_last_part     ;  
     wire  [1:0] c_act_mode  ;
     wire  [7:0] c_avg_pool_coe;////////////////add where
     
@@ -213,13 +213,15 @@ module npu_core
     //CHN:同io_ram的接卿
     wire [11:0]  o_iob_raddr  ;
     wire         o_iob_rd_en  ;
+    wire [11:0]  o_iob_raddr1  ;
+    wire         o_iob_rd_en1  ;
     wire         o_iob_pad_en ;
-    wire [11:0]  o_iob_waddr  ;
+    wire [15:0]  o_iob_waddr  ;
     wire         o_iob_wr_en  ;
     wire [255:0] o_iob_wdat	  ;
     wire [32*8-1:0] i_mdata_0,i_mdata_1;
     wire i_mdata_vld_0,i_mdata_vld_1;
-    wire c_rwsel;
+    wire c_wsel;
     //CHN:同wb_ram的接卿
     wire [32*(8+5)-1:0] i_wdata ;
     wire i_wdata_vld;
@@ -227,7 +229,7 @@ module npu_core
     wire o_wb_rd_en;
     
     //CHN:bias_ram接口
-    wire [6:0] o_ram_addr;
+    wire [7:0] o_ram_addr;
     wire [511:0] i_ram_dat;
     wire o_ram_rd_en;
     wire i_ram_dat_vld;   
@@ -246,7 +248,13 @@ module npu_core
     
     wire  c_sorter_op ;
     wire [7:0] c_o_line_size;
-    wire [15:0] c_Input_sorter_num;    
+    wire [15:0] c_Input_sorter_num;  
+    wire c_dot_en    ;
+    wire c_dotacc_en ;
+    wire c_actfun_en ;
+    wire c_src_from2buffer;
+    wire c_square_mode;
+    wire [7:0] c_i_line_size;
 
    // `include "../../../../../../test_bench/config.v"
     // //网络参数配置
@@ -279,7 +287,7 @@ module npu_core
     // assign c_xpe_mode            = 1;
 
     /* IO AGU parameter */
-    assign c_rwsel            = c_buffer_flag ? 1'b0 : 1'b1;
+   // assign c_rwsel            = c_buffer_flag ? 1'b0 : 1'b1;
     assign c_one_line_size    = c_i_piece_num*c_i_x_length;
     assign c_stride_jump_size = c_one_line_size*c_stride;
   //  assign c_sorter_op = 1'b0 ;
@@ -318,6 +326,7 @@ module npu_core
     .i_calculate_end      (o_calculate_end    ) ,
     .o_mode(c_mode),
     .o_addr_start_d       (c_addr_start_d     ) ,
+    .o_addr_start_d2       (c_addr_start_d2     ) ,
     .o_addr_start_w       (c_addr_start_w     ) ,
     .o_addr_start_s1      (c_addr_start_s1    ) ,
     .o_addr_start_s2      (c_addr_start_s2    ) ,
@@ -347,7 +356,12 @@ module npu_core
     .o_i_q_encode         (c_i_q_encode       ) ,
     .o_o_q_encode         (c_o_q_encode       )   ,
     .o_Input_sorter_num   (c_Input_sorter_num),
-     .o_sorter_op (c_sorter_op)
+     .o_sorter_op (c_sorter_op),
+     .o_dot_en    (c_dot_en   ),
+    .o_dotacc_en (c_dotacc_en),
+    .o_actfun_en (c_actfun_en),
+    .o_src_from2buffer(c_src_from2buffer),
+    .o_square_mode(c_square_mode)
     //.o_softmax_o_num      (c_softmax_o_num    ) ,
     //.o_softmax_i_num      (c_softmax_i_num    ) ,
    // .o_softmax_dest_addr  (c_softmax_dest_addr) ,
@@ -383,7 +397,7 @@ module npu_core
         .i_rst_n (i_rst_n),
 
         //外部AXI总线接口
-        .i_iob_bramctl_addr (i_iob_0_bramctl_addr ),
+        .i_iob_bramctl_addr (i_iob_0_bramctl_addr[11:0] ),
         .i_iob_bramctl_en   (i_iob_0_bramctl_en   ),
         .o_iob_bramctl_rdata(o_iob_0_bramctl_rdata),
         .i_iob_bramctl_we   (i_iob_0_bramctl_we   ),
@@ -397,10 +411,10 @@ module npu_core
         .i_iob_raddr  (o_iob_raddr),
         .i_iob_rd_en  (o_iob_rd_en),
         .i_iob_pad_en (o_iob_pad_en),
-        .i_iob_waddr  (o_iob_waddr),
+        .i_iob_waddr  (o_iob_waddr[11:0]),
         .i_iob_wr_en  (o_iob_wr_en),
         .i_iob_wdat	  (o_iob_wdat),
-        .i_rwsel      (c_rwsel),
+        .i_wsel      (c_wsel),
         .o_mdata      (i_mdata_0),
         .o_mdata_vld  (i_mdata_vld_0)
     );
@@ -413,7 +427,7 @@ module npu_core
         .i_rst_n (i_rst_n),
 
         //外部AXI总线接口
-        .i_iob_bramctl_addr (i_iob_1_bramctl_addr ),
+        .i_iob_bramctl_addr (i_iob_1_bramctl_addr[11:0] ),
         .i_iob_bramctl_en   (i_iob_1_bramctl_en   ),
         .o_iob_bramctl_rdata(o_iob_1_bramctl_rdata),
         .i_iob_bramctl_we   (i_iob_1_bramctl_we   ),
@@ -427,10 +441,10 @@ module npu_core
         .i_iob_raddr    (o_iob_raddr),
         .i_iob_rd_en    (o_iob_rd_en),
         .i_iob_pad_en   (o_iob_pad_en),
-        .i_iob_waddr    (o_iob_waddr),
+        .i_iob_waddr    (o_iob_waddr[11:0]),
         .i_iob_wr_en    (o_iob_wr_en),
         .i_iob_wdat     (o_iob_wdat),
-        .i_rwsel        (~c_rwsel),
+        .i_wsel        (~c_wsel),
     	.o_mdata        (i_mdata_1),
     	.o_mdata_vld    (i_mdata_vld_1)
     ); 
@@ -466,9 +480,9 @@ module npu_core
         .i_wb_bramctl_addr (i_wb_bramctl_addr ),
         .i_wb_bramctl_we   (i_wb_bramctl_we   ),
         .i_wb_bramctl_be   (i_wb_bramctl_be   ),
-        .i_wb_bramctl_en   (i_wb_bramctl_en   ),
-        .i_wb_start_addr   (/*i_wb_start_addr*/13'h0   ),
-        .i_wb_start_addr_en(i_wb_start_addr_en)
+        .i_wb_bramctl_en   (i_wb_bramctl_en   )
+        //.i_wb_start_addr   (i_wb_start_addr   ),
+        //.i_wb_start_addr_en(i_wb_start_addr_en)
     );
 
     wib_buffer#(
@@ -537,11 +551,19 @@ module npu_core
         //CHN:同controler的接卿
         .i_mode             (c_mode),
         .i_sorter_op (c_sorter_op),
+         .i_dot_en    (c_dot_en   ),
+        .i_dotacc_en (c_dotacc_en),
+        .i_actfun_en (c_actfun_en),
+        .i_square_mode(c_square_mode),
+        .i_src_from2buffer(c_src_from2buffer),
         .i_Input_sorter_num(c_Input_sorter_num),
         .i_calculate_enable (r_caculate_enable),
-        .i_addr_start_w     ({1'b0,c_addr_start_w}),
+        .i_addr_start_w     (c_addr_start_w),
         .i_addr_start_s     (c_addr_start_s1),
+        .i_addr_start_s2     (c_addr_start_s2),
         .i_addr_start_d     (c_addr_start_d),
+        .i_addr_start_d2     (c_addr_start_d2),
+        
         .i_addr_start_b     (c_addr_start_b),
         .i_kernel           (c_kernel),
         .i_stride           (c_stride),
@@ -557,7 +579,7 @@ module npu_core
         .i_b_last_tiling    (c_b_last_tiling),
         .i_input_layers     (c_i_piece_num),
         .i_output_layers    (c_o_piece_num),
-        .i_last_col_num     (c_last_part),
+        .i_last_col_num     (c_last_part[2:0]),
         .i_store_length     (c_o_line_size),
         .i_jump_length      (c_jump_length),
         .o_calculate_end    (o_calculate_end),
@@ -566,15 +588,20 @@ module npu_core
         .i_w_q_encode       (c_w_q_encode),
         .i_o_q_encode       (c_o_q_encode),
         .i_avg_pooling_coe (c_avg_pool_coe),
+        .i_buffer_flag     (c_buffer_flag), 
         //CHN:同io_ram的接卿
         .o_iob_raddr        (o_iob_raddr),
         .o_iob_rd_en        (o_iob_rd_en),
+        .o_iob_raddr1        (o_iob_raddr1),
+        .o_iob_rd_en1        (o_iob_rd_en1),
         .o_iob_pad_en       (o_iob_pad_en),
         .o_iob_waddr        (o_iob_waddr),
         .o_iob_wr_en        (o_iob_wr_en),
         .o_iob_wdat         (o_iob_wdat),
-        .i_mdata            (i_mdata_0|i_mdata_1),
-        .i_mdata_vld        (i_mdata_vld_0|i_mdata_vld_1),
+          .i_mdata            (i_mdata_0),
+        .i_mdata_vld        (i_mdata_vld_0),
+        .i_mdata1            (i_mdata_1),
+        .i_mdata_vld1        (i_mdata_vld_1),
         //CHN:同wb_ram的接卿
         .i_wdata            (i_wdata),
         .i_wdata_vld        (i_wdata_vld),
@@ -590,7 +617,11 @@ module npu_core
         .i_wib_rdat         (i_wib_rdat),
         .i_wib_rdat_vld     (i_wib_rdat_vld),
         .o_wib_raddr        (o_wib_raddr),
-        .o_wib_rd_en        (o_wib_rd_en)  
+        .o_wib_rd_en        (o_wib_rd_en),
+        .i_lut_bramctl_wdata(i_lstmb_bramctl_wdata[23:0]),
+	      .i_lut_bramctl_addr (i_lstmb_bramctl_addr[3:0] ),
+	      .i_lut_bramctl_we   (i_lstmb_bramctl_we   ),
+	      .i_lut_bramctl_en   (i_lstmb_bramctl_en   )    
     );
 			
 endmodule

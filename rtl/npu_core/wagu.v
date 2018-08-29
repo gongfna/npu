@@ -23,8 +23,8 @@ module wagu (
     input i_rst_n,
 
     //INST_CTRL接口
-    input [2:0] i_mode         ,
-    input [12:0] i_addr_start_w ,
+    input [3:0] i_mode         ,
+    input [9:0] i_addr_start_w ,
     input [3:0] i_kernel       ,
     input [1:0] i_stride       ,
     input [1:0] i_pad          ,
@@ -64,10 +64,11 @@ module wagu (
     //Test接口
 );
 
-    parameter [2:0] CONV_MODE=3'd1,    //模式定义
-                    POOL_MODE=3'd4,
-                    FC_MODE  =3'd2,
-                    ADD_MODE =3'd3;
+    parameter [3:0] CONV_MODE =4'd1,    //模式定义
+                    POOL_MODE =4'd4,
+                    FC_MODE   =4'd2,
+                    ADD_MODE  =4'd3,
+                    MATRIX_MODE = 4'd6;
     
     wire w_tiling_end;
 
@@ -149,7 +150,7 @@ module wagu (
     assign w_next_pe_en = (r_pe_en_cnt==i_part_num-1) ? w_last_pe_en : 7'b1111111;
     assign o_pe_conv_out = r_pe_conv_out_2;
     assign o_pe_fc_out = r_pe_fc_out_2;
-    assign o_wb_raddr = (i_mode == CONV_MODE || i_mode == FC_MODE) ? r_group_data_addr:
+    assign o_wb_raddr = (i_mode == CONV_MODE || i_mode == FC_MODE || i_mode == MATRIX_MODE) ? r_group_data_addr:
                                                ((i_mode == ADD_MODE) ? r_add_wb_offset:
                                                13'b0);
     assign o_wb_rd_en = (r_wbr_state == WBR_ADDR_GEN || r_add_wbr_state == ADD_WBR_ADDR_GEN) ? 1'b1 : 1'b0;
@@ -217,13 +218,13 @@ module wagu (
                                 r_wib_raddr <= r_wib_loopback_raddr;
                     else
                         r_wib_raddr <= r_wib_raddr + 1;
-                else if (i_mode == FC_MODE)
+                else if (i_mode == FC_MODE || i_mode == MATRIX_MODE)
                     r_wib_raddr <= r_wib_raddr + 1;
         else
             r_wib_raddr <= r_wib_raddr;
     end
 
-    assign w_wib_rd_en = (r_wibr_state == WIBR_IDX_RD && (i_mode == FC_MODE || (i_mode == CONV_MODE && !w_skip_kernel_row))) ? 1'b1 : 1'b0;    //do not generate rd_en while skipping current row
+    assign w_wib_rd_en = (r_wibr_state == WIBR_IDX_RD && (i_mode == FC_MODE||i_mode == MATRIX_MODE || (i_mode == CONV_MODE && !w_skip_kernel_row))) ? 1'b1 : 1'b0;    //do not generate rd_en while skipping current row
 
     //loop 6 -- kernel col loop
     always @(posedge i_clk or negedge i_rst_n) begin
@@ -382,7 +383,7 @@ module wagu (
                                    && r_cur_input_piece == i_input_layers - 1 && r_cur_part == i_part_num - 1
                                    && r_cur_output_piece == i_output_layers - 1 && r_cur_row == i_out_y_length - 1) ? 1'b1 : 1'b0;
                                                 
-    assign w_fc_tiling_end = (i_mode == FC_MODE) && (r_cur_fc_input_piece == i_input_layers - 1 && r_cur_fc_output_piece == i_output_layers - 1) ? 1'b1 : 1'b0;
+    assign w_fc_tiling_end = (i_mode == FC_MODE || i_mode == MATRIX_MODE) && (r_cur_fc_input_piece == i_input_layers - 1 && r_cur_fc_output_piece == i_output_layers - 1) ? 1'b1 : 1'b0;
     
     //wibr fsm
     always @(posedge i_clk or negedge i_rst_n) begin
@@ -391,7 +392,7 @@ module wagu (
         end else  begin
             case (r_wibr_state)
                 WIBR_IDLE: begin
-                    if ((i_mode == CONV_MODE || i_mode == FC_MODE) && i_enable_calculate)
+                    if ((i_mode == CONV_MODE || i_mode == FC_MODE ||i_mode == MATRIX_MODE) && i_enable_calculate)
                         r_wibr_state <= WIBR_IDX_RD;
                     else
                         r_wibr_state <= r_wibr_state;
@@ -408,7 +409,7 @@ module wagu (
 
                 WIBR_ADDR_GEN: begin
                     if (w_wb_addr_rd)
-                        if((i_mode == CONV_MODE && r_conv_tiling_end) || (i_mode == FC_MODE && r_fc_tiling_end))    //end of tiling
+                        if((i_mode == CONV_MODE && r_conv_tiling_end) || ((i_mode == FC_MODE || i_mode == MATRIX_MODE) && r_fc_tiling_end))    //end of tiling
                             r_wibr_state <= WIBR_IDLE;
                         else
                             r_wibr_state <= WIBR_IDX_RD;    
@@ -490,7 +491,7 @@ module wagu (
         else 
             case (r_wbr_state)
                 WBR_IDLE: begin
-                    if ((i_mode == CONV_MODE || i_mode == FC_MODE) && r_wibr_group_addr_vld
+                    if ((i_mode == CONV_MODE || i_mode == FC_MODE ||i_mode == MATRIX_MODE) && r_wibr_group_addr_vld
                         && i_group_load_end && i_ioagu_next_addr_rdy)
                         r_wbr_state <= WBR_ADDR_GEN;
                     else
@@ -578,7 +579,7 @@ module wagu (
     end   
     //////////////////////////////////////////////////////////////////////// 
     assign w_pe_conv_out = (i_mode == CONV_MODE && r_wb_rd_cnt == r_group_data_num && r_pe_conv_out) ? 1'b1 : 1'b0;
-    assign w_pe_fc_out = (i_mode == FC_MODE && r_wb_rd_cnt == r_group_data_num && r_pe_fc_out) ? 1'b1 : 1'b0;
+    assign w_pe_fc_out = ((i_mode == FC_MODE||i_mode == MATRIX_MODE) && r_wb_rd_cnt == r_group_data_num && r_pe_fc_out) ? 1'b1 : 1'b0;
     
     always @(posedge i_clk or negedge i_rst_n) begin
         if (!i_rst_n) 
@@ -602,22 +603,22 @@ module wagu (
             r_pe_fc_out_2 <= 0;
     end
 
-    //======================================= FC Mode ==============================================  
-//    always @(posedge i_clk or negedge i_rst_n) begin
-    //    if (!i_rst_n) 
-  //          r_fc_wib_offset <= 0;
-  //      else if(i_enable_calculate)
-  //          r_fc_wib_offset <= 0;
-  //      else if (i_mode == FC_MODE && r_wibr_state == WIBR_IDX_RD)
- //               r_fc_wib_offset <= r_fc_wib_offset + 1;
+   // //======================================= FC Mode ==============================================  
+   // always @(posedge i_clk or negedge i_rst_n) begin
+   //     if (!i_rst_n) 
+   //         r_fc_wib_offset <= 0;
+   //     else if(i_enable_calculate)
+   //         r_fc_wib_offset <= 0;
+   //     else if ((i_mode == FC_MODE||i_mode == MATRIX_MODE) && r_wibr_state == WIBR_IDX_RD)
+   //             r_fc_wib_offset <= r_fc_wib_offset + 1;
    //         else
    //             r_fc_wib_offset <= r_fc_wib_offset;
-  //  end
+   // end
 
     always @(posedge i_clk or negedge i_rst_n) begin
         if (!i_rst_n) 
             r_cur_fc_input_piece <= 0;
-        else if (i_mode == FC_MODE && r_wibr_state == WIBR_IDX_RD) 
+        else if ((i_mode == FC_MODE||i_mode == MATRIX_MODE) && r_wibr_state == WIBR_IDX_RD) 
             if (r_cur_fc_input_piece == i_input_layers - 1)
                 r_cur_fc_input_piece <= 0;
             else

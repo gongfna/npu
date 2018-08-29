@@ -1,7 +1,7 @@
-#!/opt/synopsys/coretools/K-2015.06-SP5/linux64/dware/bin/snpsperl
+#!/edatools/synopsys/coretools/K-2015.06-SP5/linux64/dware/bin/snpsperl
 package main;
 require 5.004;
-BEGIN { @INC = ( "/opt/synopsys/coretools/K-2015.06-SP5/linux64/dware/lib" ); }
+BEGIN { @INC = ( "/edatools/synopsys/coretools/K-2015.06-SP5/linux64/dware/lib" ); }
 # -------------------------------------------------------------------------
 #
 #

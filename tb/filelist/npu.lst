@@ -8,6 +8,7 @@
 -f ../filelist/dw_axi_x2x256.lst
 -f ../filelist/dw_axi_x2x512.lst
 -f ../filelist/dw_axi_x2p_dma.lst
+-f ../filelist/dw_axi_x2x_dma_m.lst
 -f ../filelist/rtl.lst
 #-f ../filelist/tb.lst
 #-f ../filelist/tc.lst

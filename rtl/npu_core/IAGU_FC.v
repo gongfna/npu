@@ -75,8 +75,8 @@ module IAGU_FC (
         first_group_t <= 1'b0;
         end
         else  begin      
-	first_group_t <= i_AGUStart;
-        first_group <= first_group_t;
+        first_group_t <= i_AGUStart;
+        first_group <= i_AGUStart;
         end
     end
 

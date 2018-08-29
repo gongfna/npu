@@ -45,7 +45,10 @@ input i_b_stream,
 input i_ex_dma, 
 input [7:0] i_line_size, 
 input [1:0] i_stride, 
-input [1:0] i_pad_num, 
+//input [1:0] i_pad_num, 
+input [1:0] i_single_pad, 
+input [1:0] i_double_pad, 
+input i_reorg_type, 
 //- xdma core
 input dma_done, 
 output [31:0] dma_src_addr, 
@@ -55,7 +58,10 @@ output b_stream,
 output ex_dma, 
 output [7:0] line_size, 
 output [1:0] stride,
-output [1:0] pad_num, 
+//output [1:0] pad_num, 
+output [1:0] single_pad, 
+output [1:0] double_pad, 
+output reorg_type, 
 output [31:0] zone1_addr_s,
 output [31:0] zone1_size_s,
 output [31:0] zone2_addr_s,
@@ -66,6 +72,7 @@ output [31:0] zone4_addr_s,
 output [31:0] zone4_size_s,
 output [3:0] zone_en_s,
 output [31:0] src_addr_s,
+output [31:0] dst_addr_s,
 output [31:0] inst_depth_s,
 output [3:0] awid_cfg, 
 output [1:0] awburst_cfg, 
@@ -93,7 +100,11 @@ output axi_wr_buf_en,
 //output init_inst, 
 output npu_stop, 
 output npu_start, 
-//input init_inst_finish, 
+//- axi_status
+input [1:0] rresp, 
+input [3:0] rid, 
+input [1:0] bresp, 
+input [3:0] bid, 
 //- IRR
 input internal_stop, 
 input ex_zone_bias_wr_finish, 
@@ -117,7 +128,8 @@ input npu_work_state,
 output o_interrupt
 );
 //-
-localparam NUM_REGS=18;
+localparam NUM_REGS=20;
+wire init_inst;
 wire [NUM_REGS-1:0] dma_regs_wr_en;
 wire [NUM_REGS*32-1:0] dma_regs_port;
 gapb_if_cfg #(NUM_REGS, 5) U_apb_if (
@@ -134,9 +146,36 @@ gapb_if_cfg #(NUM_REGS, 5) U_apb_if (
   .tst_gatedclock(1'b0), 
   .regs_port(dma_regs_port)
 );
+reg init_fail;
+always @(posedge pclk or negedge preset_n)
+	if(~preset_n) begin
+		init_fail <= 1'b0;
+	end
+	else begin
+		if(init_inst)
+			init_fail <= |inst_depth_s[31:12];
+	end
+
+//- axi_status
+wire [11:0] axi_status_pre;
+assign axi_status_pre = {
+rresp, 
+rid, 
+bresp, 
+bid
+};
+wire [11:0] axi_status;
+gsync_ar #(12)U_axi_status_sync(//Output
+		 .datasync_r(axi_status),
+		 //Input
+		 .datain(axi_status_pre),
+		 .clk(pclk),
+		 .areset(preset_n));
+
 //- IRR combine
-wire [9:0] irr_pre;
+wire [11-1:0] irr_pre;
 assign irr_pre = {
+init_fail, 
 internal_stop, 
 ex_zone_bias_wr_finish, 
 ex_zone_wib_wr_finish, 
@@ -179,7 +218,10 @@ assign ex_dma = i_ex_dma;
 assign b_stream = i_b_stream;
 assign line_size = i_line_size;
 assign stride = i_stride;
-assign pad_num = i_pad_num;
+//assign pad_num = i_pad_num;
+assign single_pad = i_single_pad;
+assign double_pad = i_double_pad;
+assign reorg_type = i_reorg_type;
 
 //- init_prot
 wire init_prot;
@@ -263,13 +305,13 @@ clock_gater U_imr_gater(
   .wait_r(1'b0), 
   .tst_gatedclock(1'b0)
 );
-reg [10-1:0] imr;
+reg [11-1:0] imr;
 always @(posedge imr_wr or negedge preset_n)
 	if(~preset_n) begin
-		imr <= {10{1'b1}};
+		imr <= {11{1'b1}};
 	end
 	else begin
-		imr <= pwdata[10-1:0];
+		imr <= pwdata[11-1:0];
 	end
 //wire [10-1:0] irr;
 //gsync_ar #(10)U_irr_sync(//Output
@@ -279,7 +321,7 @@ always @(posedge imr_wr or negedge preset_n)
 //		 .clk(pclk),
 //		 .areset(preset_n));
 //
-wire [10-1:0] isr;
+wire [11-1:0] isr;
 //-// irr write signal
 //-wire irr_wr;
 //-clock_gater U_irr_gater(
@@ -289,36 +331,36 @@ wire [10-1:0] isr;
 //-  .wait_r(1'b0), 
 //-  .tst_gatedclock(1'b0)
 //-);
-reg [10-1:0] irr_clr;
+reg [11-1:0] irr_clr;
 always @(posedge pclk or negedge preset_n)
 	if(~preset_n) begin
-		irr_clr <= {10{1'b0}};
+		irr_clr <= {11{1'b0}};
 	end
 	else begin
 		if(dma_regs_wr_en[3])
-			irr_clr <= pwdata[10-1:0];
+			irr_clr <= pwdata[11-1:0];
 		else
-			irr_clr <= {10{1'b0}};
+			irr_clr <= {11{1'b0}};
 	end
 
-wire [10-1:0] irr_clr_x;
-gsync_ar #(10)U_irr_sync(//Output
+wire [11-1:0] irr_clr_x;
+gsync_ar #(11)U_irr_sync(//Output
 		 .datasync_r(irr_clr_x),
 		 //Input
 		 .datain(irr_clr),
 		 .clk(xclk),
 		 .areset(xreset_n));
-reg [10-1:0] irr_r;
-reg [10-1:0] irr_o;
+reg [11-1:0] irr_r;
+reg [11-1:0] irr_o;
 integer i;
 always @(posedge xclk or negedge xreset_n)
 	if(~xreset_n) begin
-		irr_r <= {10{1'b0}};
-		irr_o <= {10{1'b0}};
+		irr_r <= {11{1'b0}};
+		irr_o <= {11{1'b0}};
 	end
 	else begin
 		irr_r <= irr_pre;
-		for(i=0;i<10;i=i+1) begin
+		for(i=0;i<11;i=i+1) begin
 			if(irr_pre[i] & ~irr_r[i])
 				irr_o[i] <= 1'b1;
 			else begin
@@ -577,12 +619,37 @@ gsync_ar #(32)U_src_addr_sync(//Output
 		 .clk(gxclk),
 		 .areset(xreset_n));
 
+// dst_addr write signal
+wire dst_addr_wr;
+clock_gater U_dst_addr_gater(
+  .gclk(dst_addr_wr), 
+  .clk(pclk), 
+  .enable(dma_regs_wr_en[14]), 
+  .wait_r(1'b0), 
+  .tst_gatedclock(1'b0)
+);
+reg [32-1:0] dst_addr;
+always @(posedge dst_addr_wr or negedge preset_n)
+	if(~preset_n) begin
+		dst_addr <= {32{1'b0}};
+	end
+	else begin
+		dst_addr <= pwdata[32-1:0];
+	end
+//wire [32-1:0] dst_addr_s;
+gsync_ar #(32)U_dst_addr_sync(//Output
+		 .datasync_r(dst_addr_s),
+		 //Input
+		 .datain(dst_addr),
+		 .clk(gxclk),
+		 .areset(xreset_n));
+
 // inst_depth write signal
 wire inst_depth_wr;
 clock_gater U_inst_depth_gater(
   .gclk(inst_depth_wr), 
   .clk(pclk), 
-  .enable(dma_regs_wr_en[14]), 
+  .enable(dma_regs_wr_en[15]), 
   .wait_r(1'b0), 
   .tst_gatedclock(1'b0)
 );
@@ -600,7 +667,7 @@ wire axi_ctrl_wr;
 clock_gater U_axi_ctrl_gater(
   .gclk(axi_ctrl_wr), 
   .clk(pclk), 
-  .enable(dma_regs_wr_en[17]), 
+  .enable(dma_regs_wr_en[18]), 
   .wait_r(1'b0), 
   .tst_gatedclock(1'b0)
 );
@@ -653,10 +720,12 @@ gsync_ar #(8)U_status_sync(//Output
 		 .areset(preset_n));
 //- dma regs mux out 
 assign dma_regs_port = {
+{{(32-12){1'b0}}, axi_status}, 
 {{(32-32){1'b0}}, axi_ctrl}, 
 {{(32-8){1'b0}}, status}, 
 {{(32-4){1'b0}}, zone_status}, 
 {{(32-32){1'b0}}, inst_depth}, 
+{{(32-32){1'b0}}, dst_addr}, 
 {{(32-32){1'b0}}, src_addr}, 
 {{(32-4){1'b0}}, zone_en}, 
 {{(32-32){1'b0}}, zone4_size}, 
@@ -667,9 +736,9 @@ assign dma_regs_port = {
 {{(32-32){1'b0}}, zone2_addr}, 
 {{(32-32){1'b0}}, zone1_size}, 
 {{(32-32){1'b0}}, zone1_addr}, 
-{{(32-10){1'b0}}, isr}, 
-{{(32-10){1'b0}}, irr_o}, 
-{{(32-10){1'b0}}, imr}, 
+{{(32-11){1'b0}}, isr}, 
+{{(32-11){1'b0}}, irr_o}, 
+{{(32-11){1'b0}}, imr}, 
 {{(32-6){1'b0}}, ctrl}};
 //- interrupt or out
 assign isr = ~imr & irr_o; 
@@ -677,9 +746,8 @@ assign o_interrupt = |isr;
 
 
 //- Converter
-wire init_inst;
 assign dma_mode = dma_done ? 4'h0 : i_dma_mode;
-assign mode_m2instb = init_inst;
+assign mode_m2instb = init_inst & (~|inst_depth_s[31:12]);
 assign axi_wr_buf_en = ctrl_s[5];
 assign init_prot = ctrl_s[4];
 //assign init_inst = ctrl_s[2];

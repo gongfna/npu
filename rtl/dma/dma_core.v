@@ -60,6 +60,11 @@ input slast_sram,
 input [DW_IOB-1:0] sdata_sram, 
 output mready_sram, 
 //- xdma cfg
+//- axi_status
+output reg [1:0] rresp_r, 
+output reg [3:0] rid_r, 
+output reg [1:0] bresp_r, 
+output reg [3:0] bid_r, 
 output reg dma_finish, 
 input [31:0] dma_src_addr, 
 input [31:0] dma_dst_addr, 
@@ -68,7 +73,12 @@ input b_stream,
 input ex_dma, 
 input [7:0] line_size, 
 input [1:0] stride,
-input [1:0] pad_num, 
+//input [1:0] pad_num, 
+//- 0: input remap
+//- 1: inner remap
+input reorg_type, 
+input [1:0] single_pad, 
+input [1:0] double_pad, 
 input [31:0] zone1_addr_s,
 input [31:0] zone1_size_s,
 input [31:0] zone2_addr_s,
@@ -79,6 +89,7 @@ input [31:0] zone4_addr_s,
 input [31:0] zone4_size_s,
 input [3:0] zone_en_s,
 input [31:0] src_addr_s,
+input [31:0] dst_addr_s,
 input [31:0] inst_depth_s,
 input [3:0] awid_cfg, 
 input [1:0] awburst_cfg, 
@@ -161,7 +172,21 @@ output                      rready_m,
 input xclk,
 input xrst_n 
 );
+reg [3:0] ar_a_fifo[0:3];
+reg [1:0] ar_a_wptr;
+reg [1:0] ar_a_rptr;
+reg [2:0] ar_a_fifo_num;
+wire ddr_rdata_en;
+wire ar_a_fifo_push;
+wire ar_a_fifo_pop;
+wire ar_a_fifo_conflict;
 
+wire [1:0] pad_num;
+assign pad_num = single_pad;
+wire remap_type0;
+wire remap_type1;
+wire [2:0] stride_inc;//1-4
+wire [8:0] line_size_inc;
 wire [31:0] len_max_shl4;
 wire [31:0] len_max_shl1;
 wire [31:0] len_max_shl5;
@@ -261,6 +286,25 @@ wire mode_m2biasb;
 wire mode_m2lstmb;
 wire mode_m2_down;
 
+//- axi_status
+always @(posedge aclk_m or negedge aresetn_m)
+	if(~aresetn_m) begin
+		rresp_r <= 2'b0;
+		rid_r <= 4'b0;
+		bresp_r <= 2'b0;
+		bid_r <= 4'b0;
+	end
+	else begin
+		if(rvalid_m) begin
+		    rresp_r <= rresp_m;
+		    rid_r <= rid_m;
+		end
+		if(bvalid_m) begin
+		    bresp_r <= bresp_m;
+		    bid_r <= bid_m;
+		end
+	end
+
 wire arready_in;
 assign arready_in = arready_m;
 
@@ -286,23 +330,27 @@ wire mode_2m;
 //wire [31:0] maddr_sram_start;
 wire [31:0] maddr_ddr_start;
 reg mode_m2instb_r2;
+reg mode_m2instb_in;
 always @(posedge xclk or negedge xrst_n) 
     if(~xrst_n) begin
 		mode_m2instb_r <= 1'b0;
 		mode_m2instb_r2 <= 1'b0;
+		mode_m2instb_in <= 1'b0;
 	end
 	else begin
 		mode_m2instb_r2 <= mode_m2instb_r;
+		mode_m2instb_in <= mode_m2instb;
 		//if(dma_done)
 		if(dma_done_ddr & dma_done_sram)
 			mode_m2instb_r <= 1'b0;
-		else if(mode_m2instb)
+		else if(mode_m2instb & ~mode_m2instb_in)
 			mode_m2instb_r <= 1'b1;
 	end
 
 assign mode_m2 = mode_m2instb_r | mode_m2iob0 | mode_m2iob1 | mode_m2wb416 | mode_m2wb256 | mode_m2wib | mode_m2biasb | mode_m2lstmb;
 assign mode_2m = mode_iob02m | mode_iob12m;
-assign maddr_sram_start = mode_m2instb_r ? 32'h0 : 
+//assign maddr_sram_start = mode_m2instb_r ? 32'h0 : 
+assign maddr_sram_start = mode_m2instb_r ? dst_addr_s : 
 							mode_m2 ?  dma_dst_addr : dma_src_addr;
 assign maddr_ddr_start = mode_m2instb_r ? src_addr_s :
 							mode_m2 ? dma_src_addr : dma_dst_addr;
@@ -313,14 +361,22 @@ wire [31:0] wb_len_max;
 // TODO
 assign wb_len_max = ((dma_trans_len>>2)+{31'h0,|dma_trans_len[1:0]})*13;
 //assign len_max = mode_m2iob0|mode_m2iob1|mode_iob02m|mode_iob12m ? dma_trans_len<<1 : 
-assign len_max = mode_m2iob0|mode_m2iob1 ? dma_trans_len<<1 :
-				 mode_iob02m|mode_iob12m ? dma_trans_len : 
+wire [31:0] dma_trans_len2;
+// TODO
+wire [31:0] remap_len;
+//assign remap_len = ((line_size*line_size)<<1)-1;
+assign remap_len = (line_size*line_size)<<1;
+//assign remap_len = line_size*line_size-1;
+//assign dma_trans_len2 = |stride? remap_len : dma_trans_len;
+assign dma_trans_len2 = remap_type1 ? remap_len : dma_trans_len;
+assign len_max = mode_m2iob0|mode_m2iob1 ? dma_trans_len2<<1 :
+				 mode_iob02m|mode_iob12m ? dma_trans_len2 : 
                  mode_m2wb416 ? wb_len_max : 
                  mode_m2wb256 ? dma_trans_len<<1: 
                  mode_m2wib ? dma_trans_len>>2 : 
                  mode_m2lstmb ? dma_trans_len>>2 : 
                  mode_m2biasb ? dma_trans_len<<2 : 
-                 mode_m2instb_r ? inst_depth_s : 'h0;
+                 mode_m2instb_r ? (inst_depth_s+'h1) : 'h0;
 //
 //- zone_detect
 wire [32*4-1:0] zone_addr_bus;
@@ -394,7 +450,7 @@ always @(posedge xclk or negedge xrst_n)
 	    zone4_addr_match <= 1'b0;
 	end
 	else begin
-		if(~dma_done) begin
+		if(~dma_done & b_stream) begin
 		    zone1_addr_match <= zone1_addr_match_pre;
 		    zone2_addr_match <= zone2_addr_match_pre;
 		    zone3_addr_match <= zone3_addr_match_pre;
@@ -414,7 +470,8 @@ assign zone_match = (zone1_addr_match & zone_en_s[0] & mode_m2) & ~mode_m2instb_
                     (zone3_addr_match & zone_en_s[2] & mode_2m) | 
                     (zone4_addr_match & zone_en_s[3] & mode_2m);  
 
-assign zone_trans = (~b_stream | zone_match);
+//assign zone_trans = (~b_stream | zone_match);
+assign zone_trans = 1'b1;
 
 wire svalid_ddr;
 wire [DW-1:0] sdata_ddr;
@@ -446,6 +503,7 @@ assign mwstrb_sram = 32'hffff_ffff;
 ////- sort
 reg [31:0] maddr_sram_pre;
 reg [31:0] maddr_cnt;
+reg [31:0] maddr_cnt_z;
 reg [31:0] line_size_cnt;
 //reg [31:0] maddr_arr;
 //integer j;
@@ -460,13 +518,45 @@ reg [31:0] line_size_cnt;
 //  			if(j[1:0]==maddr_cnt)  maddr_arr <= j;
 //		//$display("%m%t 1:%h , 2:%h ", $time, maddr_sram_pre, maddr_arr);
 //	end
-assign maddr_sram = ((mode_m2iob0|mode_m2iob1) ?  {1'b0, maddr_sram_pre[31:1]} : 
+//assign maddr_sram = ((mode_m2iob0|mode_m2iob1) ?  {1'b0, maddr_sram_pre[31:1]} : 
+assign maddr_sram = ((mode_m2iob0|mode_m2iob1)? (remap_type1?maddr_sram_pre[31:0]:{1'b0,maddr_sram_pre[31:1]}): 
 						mode_m2biasb ? {2'b0, maddr_sram_pre[31:2]} : maddr_sram_pre)
 						+ maddr_sram_start;
+reg iob_addr_we;
+wire ex_dma_start;
+assign ex_dma_start = ex_dma_r & ~ex_dma_r2 & zone_trans;
+always @(posedge xclk or negedge xrst_n) 
+    if(~xrst_n) begin
+		iob_addr_we <= 1'b0;
+	end
+	else begin
+        if(ex_dma_start) begin
+			if(~|stride | remap_type0) begin
+				iob_addr_we <= 1'b1;
+			end
+			else begin
+				iob_addr_we <= ~(mode_m2iob0 | mode_m2iob1);
+			end
+		end
+        else if(~fifo_m2_empty & mwrite_sram & (mode_m2iob0 | mode_m2iob1) & dma_en & ~dma_done_sram) begin
+			if(remap_type1) begin
+		    	iob_addr_we <= ~iob_addr_we;
+			end
+		end
+	end
+wire [14:0] remap_type1_incx;
+// TODO
+// remap_type1_incx = line_size*2/stride_inc
+assign remap_type1_incx = stride_inc[2] ? line_size>>1 : 
+                          (stride_inc[1] & ~stride_inc[0]) ? line_size : 
+                          (~stride_inc[1] & stride_inc[0]) ? 'h0 : 
+						  line_size*85>>7; 
+
 always @(posedge xclk or negedge xrst_n) 
     if(~xrst_n) begin
         maddr_sram_pre <= 'h0;
         maddr_cnt <= 'h0;
+		maddr_cnt_z <= 32'h0;
         line_size_cnt <= 'h0;
         inst_dec_exception <= 1'b0;
         sram_wr_resp_cnt <= 'h0;
@@ -474,35 +564,96 @@ always @(posedge xclk or negedge xrst_n)
     end
     else begin
         if(ex_dma_lvl) inst_dec_exception <= ~mode_2m & ~mode_m2;
-        if(ex_dma_r & ~ex_dma_r2 & zone_trans) begin
+        if(ex_dma_start) begin
             maddr_sram_pre <= 32'h0;
 			maddr_cnt <= 32'h0;
-			line_size_cnt <= 'h0;
+			maddr_cnt_z <= 32'h0;
+			line_size_cnt <= 'h1;
         end
         //else if(svalid_ddr & slast_ddr & dma_en_m2 & ~dma_done_sram) begin
-        else if(~fifo_m2_empty & mwrite_sram & dma_en_m2 & ~dma_done_sram) begin
-            maddr_sram_pre <= maddr_sram_pre + 'h1;
-			//`DBG_DISP2(MADDR_SRAM = %h, maddr_sram_pre)
+        else if(~fifo_m2_empty & mwrite_sram & dma_en_m2 & ~dma_done_sram & iob_addr_we) begin
+            //maddr_sram_pre <= maddr_sram_pre + {30'h0, stride+2'b1};
+			//if(line_size_cnt >= (line_size-2)) begin
+			//	line_size_cnt <= 'h1;
+			//	maddr_cnt <= maddr_cnt + 'h1;
+			//	if(maddr_cnt == ((stride_inc<<1)-1)) begin
+			//	//if(maddr_cnt == stride) begin
+			//		maddr_sram_pre <= maddr_sram_pre + 1;
+			//		maddr_cnt_z <= maddr_cnt_z + 'h1;
+			//		maddr_cnt <= 'h0;
+			//	end
+			//	else if(maddr_cnt[0]) begin
+			//	//else begin
+			//		maddr_sram_pre <= maddr_cnt[31:1] + 1 + maddr_cnt_z * (line_size<<1);
+			//	end
+			//end
+			//else begin
+			//	if(|stride)
+			//		line_size_cnt <= line_size_cnt + (stride+1);
+			//end
+			if(remap_type1) begin
+				if(maddr_cnt==(line_size<<1)-1) begin
+					maddr_cnt <= 'h0;
+					maddr_sram_pre <= maddr_sram_pre + 'h1;
+					line_size_cnt <= 'h1;
+				end
+				else begin
+					maddr_cnt <= maddr_cnt + 'h1;
+					if(line_size_cnt == stride_inc) begin
+						line_size_cnt <= 'h1;
+						//TODO
+						maddr_sram_pre <= maddr_sram_pre - remap_type1_incx*stride + 'h1;
+					end
+					else begin
+						maddr_sram_pre <= maddr_sram_pre + remap_type1_incx;
+						line_size_cnt <= line_size_cnt + 'h1;
+					end
+				end
+			end
+			else begin
+			    maddr_sram_pre <= maddr_sram_pre + 'b1;
+			end
 		end
         else if(saccept_sram & dma_en_2m & ~afifo_full & ~dma_done_sram) begin
             maddr_sram_pre <= maddr_sram_pre + {30'h0, stride+2'b1};
 			if(line_size_cnt >= (line_size-2)) begin
-				line_size_cnt <= 'h0;
+				line_size_cnt <= 'h1;
 				maddr_cnt <= maddr_cnt + 'h1;
-				if(maddr_cnt == stride) begin
+				if(maddr_cnt == ((stride_inc<<1)-1)) begin
 					maddr_sram_pre <= maddr_sram_pre + 1;
+					maddr_cnt_z <= maddr_cnt_z + 'h1;
 					maddr_cnt <= 'h0;
 				end
-				else begin
-					maddr_sram_pre <= maddr_sram_pre + 3 -line_size;
+				else if(maddr_cnt[0]) begin
+					maddr_sram_pre <= maddr_cnt[31:1] + 1 + maddr_cnt_z * (line_size<<1);
 				end
 			end
 			else begin
-				line_size_cnt <= line_size_cnt + (stride+1);
+				if(|stride)
+					line_size_cnt <= line_size_cnt + (stride+1);
 			end
+            //-maddr_sram_pre <= maddr_sram_pre + {30'h0, stride+2'b1};
+			//-//if(line_size_cnt >= (line_size_inc-2)) begin
+			//-if(line_size_cnt >= (line_size-2)) begin
+			//-	line_size_cnt <= 'h1;
+			//-	maddr_cnt <= maddr_cnt + 'h1;
+			//-	if(maddr_cnt == (stride_inc+1)) begin
+			//-		maddr_sram_pre <= maddr_sram_pre + 1;
+			//-		maddr_cnt <= 'h0;
+			//-	end
+			//-	else if(maddr_cnt == stride) begin
+			//-		//maddr_sram_pre <= maddr_sram_pre + 1;
+			//-		maddr_sram_pre <= maddr_sram_pre + 'h2 + 'h1 - (maddr_cnt+'h1)*line_size;
+			//-		//maddr_cnt <= 'h0;
+			//-	end
+			//-end
+			//-else begin
+			//-    if(|stride)
+			//-		line_size_cnt <= line_size_cnt + (stride+1);
+			//-end
         end
 
-        if(ex_dma_r & ~ex_dma_r2 & zone_trans) begin
+        if(ex_dma_start) begin
             sram_wr_resp_cnt <= maddr_sram_start;
             sram_wr_req_cnt <= maddr_sram_start;
         end
@@ -566,7 +717,8 @@ always @(posedge xclk or negedge xrst_n)
 		//else if(~fifo_m2_full & ex_dma_r) begin
 		//	mread_ddr_cnt <= mread_ddr_cnt + 1;
 		//end
-		if(dma_done | (~|stride))
+		//if(dma_done | (~|stride))
+		if(dma_done | (~|stride) | reorg_type)
 			mread_ddr_cnt <= 4'h0;
 		else if(rvalid_m & ~fifo_m2_full & ex_dma_r) begin
 			mread_ddr_cnt <= mread_ddr_cnt + 1;
@@ -601,7 +753,8 @@ always @(posedge xclk or negedge xrst_n)
 				//end
 				//else begin
 					mread_ddr <= (dma_en & mode_m2 | mode_m2instb_r & mode_m2instb_r2) & 
-					             ~|mread_ddr_cnt;
+					             //~|mread_ddr_cnt;
+					             (remap_type0 ? ar_a_fifo_num<=2 : 1'b1);
 				//end
 			end
 		end
@@ -612,17 +765,22 @@ wire [127:0] sdata_ddr_in;
 reg [127:0] sdata_ddr_shift;
 wire [127:0] sdata_ddr_merge;
 reg [15:0] data_bit;
+reg [15:0] data_bit_sel;
+reg [3:0] data_bit_cnt;
+reg [3:0] data_bit_sel_cnt;
 reg rlast_s_r;
 wire [127:0] sdata_mask;
 wire [127:0] sdata_ddr_mask;
 wire remap;
-assign remap = (|stride) & (mode_m2iob0 | mode_m2iob1);
+//assign remap = (|stride) & (mode_m2iob0 | mode_m2iob1);
+assign remap = remap_type0 & (mode_m2iob0 | mode_m2iob1);
 assign fifo_m2_push_en = ((~remap) |
 						  (remap & data_bit[15])) & rvalid_m & ~fifo_m2_full & dma_en_m2;
 
 
-assign sdata_ddr_in = {128{|stride}} & sdata_ddr_merge | 
-					  {128{~|stride}} & sdata_ddr;
+//assign sdata_ddr_in = {128{|stride}} & sdata_ddr_merge | 
+assign sdata_ddr_in = {128{remap_type0}} & sdata_ddr_merge | 
+					  {128{~|stride|remap_type1}} & sdata_ddr;
 
 always @(posedge xclk or negedge xrst_n) 
     if(~xrst_n) begin
@@ -722,7 +880,8 @@ always @(posedge xclk or negedge xrst_n)
 			//			   (|stride ? data_bit[15] : ~fifo_m2_empty);
 			//			   (|stride ? data_bit[15] : ~fifo_m2_empty&rvalid_s_r);
 						   //(|stride ? data_bit[15] : rvalid_s_r);
-						   (|stride ? (data_bit[0]&~data_bit0_r) : rvalid_s_r);
+						   //(|stride ? (data_bit[0]&~data_bit0_r) : rvalid_s_r);
+						   (remap_type0 ? (data_bit[0]&~data_bit0_r) : rvalid_s_r);
 			//			   (|stride ? 1'b1 : svalid_ddr);
 		end
         if(dma_done_sram) begin
@@ -925,7 +1084,6 @@ assign piece_new = k_new[5];
 // stride_div_piece = stride / piece
 wire [1:0] stride_div_piece;
 assign stride_div_piece = stride_inc[2] ? 2'h2 : stride_inc[1:0];
-wire [8:0] line_size_inc;
 assign line_size_inc = {1'b0, line_size} + 9'h1;
 //- k_old_x = line_size * stride_div_piece -pad_num
 wire [9:0] k_old_x;
@@ -970,12 +1128,17 @@ assign k_old_x = line_size_mult - {8'h0, pad_num};
 //- maddr_ddr_pre = stride_inc*3*map_num + k_x*stride_cnt + line_nxt*k_x*3*stride_inc;
 reg [2:0] map_num;//max=2^14(stride=2)
 reg [1:0] stride_cnt;
+reg [1:0] stride_cnt_r;
+reg stride_cnt_ext;
+wire [1:0] stride_cnt_mx;
+assign stride_cnt_mx = stride_cnt_ext ? (stride_cnt | stride_cnt_r) : stride_cnt;
+//assign stride_cnt_mx = stride_cnt;
 reg [7:0] stride_cnt_y;
 //- stride_cnt_x = line_size+pad_num/stride_inc;
 wire [14:0] stride_cnt_x;
 // TODO
 wire [8:0] line_size_full;
-assign line_size_full = line_size+pad_num;
+assign line_size_full = line_size_inc+pad_num;
 assign stride_cnt_x = stride_inc==3? (line_size_full)*85>>8 :  // A/256, 85 so close
 					  stride_inc==4? (line_size_full)>>2 : // A/4
 					  stride_inc==2? (line_size_full)>>1 : // A/2
@@ -992,17 +1155,19 @@ wire [9:0] k_x;
 wire [19:0] line_nxt_addr;
 // map_size = line_size * line_size *3;
 wire [19:0] map_size; //18bit
-assign map_size = k_x * line_size;
+assign map_size = k_x * line_size_inc;
 // ROW=k_x/stride_inc; row_num use to calc maddr_ddr> 5
 // line_nxt_addr = line_nxt * k_x * 3 * stride_inc;
 assign line_nxt_addr = line_nxt * k_x * stride_inc; 
-assign k_x = {1'b0, line_size, 1'b0} + {2'b0, line_size};
+assign k_x = {1'b0, line_size_inc, 1'b0} + {2'b0, line_size_inc};
 assign map_num_mult3 = {2'b0, map_num} + {1'b0, map_num, 1'b0};
 assign map_num_mult3_multstride = stride_inc[2] ? {map_num_mult3, 2'b0} :
 								  ((stride_inc[1] ? {1'b0, map_num_mult3,1'b0} : 8'h0) +
 								  (stride_inc[0] ? {2'b0, map_num_mult3} : 8'h0));
-assign k_x_mult_stride_cnt = (stride_cnt[1] ? {1'b0, k_x, 1'b0} : 12'h0) + 
-				(stride_cnt[0] ? {2'b0, k_x} : 12'h0);
+
+assign k_x_mult_stride_cnt = (stride_cnt_mx[1] ? {1'b0, k_x, 1'b0} : 12'h0) + 
+				(stride_cnt_mx[0] ? {2'b0, k_x} : 12'h0);
+
 assign maddr_ddr_pre = line_nxt_addr  +  
 						{12'b0, map_num_mult3_multstride} + {8'h0, k_x_mult_stride_cnt}; 
 
@@ -1010,31 +1175,35 @@ assign maddr_ddr_remap = {12'h0, maddr_ddr_pre} + maddr_ddr_start;
 //- wire [2:0] map_num_b2d0_dec;
 //- assign map_num_b2d0_dec = map_num[2:0] - 3'b1;
 `ifdef IVERILOG
-assign sdata_mask[(0+1)*8-1:0*8] = {8{data_bit[0]}};
-assign sdata_mask[(1+1)*8-1:1*8] = {8{data_bit[1]}};
-assign sdata_mask[(2+1)*8-1:2*8] = {8{data_bit[2]}};
-assign sdata_mask[(3+1)*8-1:3*8] = {8{data_bit[3]}};
-assign sdata_mask[(4+1)*8-1:4*8] = {8{data_bit[4]}};
-assign sdata_mask[(5+1)*8-1:5*8] = {8{data_bit[5]}};
-assign sdata_mask[(6+1)*8-1:6*8] = {8{data_bit[6]}};
-assign sdata_mask[(7+1)*8-1:7*8] = {8{data_bit[7]}};
-assign sdata_mask[(8+1)*8-1:8*8] = {8{data_bit[8]}};
-assign sdata_mask[(9+1)*8-1:9*8] = {8{data_bit[9]}};
-assign sdata_mask[(10+1)*8-1:10*8] = {8{data_bit[10]}};
-assign sdata_mask[(11+1)*8-1:11*8] = {8{data_bit[11]}};
-assign sdata_mask[(12+1)*8-1:12*8] = {8{data_bit[12]}};
-assign sdata_mask[(13+1)*8-1:13*8] = {8{data_bit[13]}};
-assign sdata_mask[(14+1)*8-1:14*8] = {8{data_bit[14]}};
-assign sdata_mask[(15+1)*8-1:15*8] = {8{data_bit[15]}};
+assign sdata_mask[(0+1)*8-1:0*8]   = {8{data_bit_sel[0]}};
+assign sdata_mask[(1+1)*8-1:1*8]   = {8{data_bit_sel[1]}};
+assign sdata_mask[(2+1)*8-1:2*8]   = {8{data_bit_sel[2]}};
+assign sdata_mask[(3+1)*8-1:3*8]   = {8{data_bit_sel[3]}};
+assign sdata_mask[(4+1)*8-1:4*8]   = {8{data_bit_sel[4]}};
+assign sdata_mask[(5+1)*8-1:5*8]   = {8{data_bit_sel[5]}};
+assign sdata_mask[(6+1)*8-1:6*8]   = {8{data_bit_sel[6]}};
+assign sdata_mask[(7+1)*8-1:7*8]   = {8{data_bit_sel[7]}};
+assign sdata_mask[(8+1)*8-1:8*8]   = {8{data_bit_sel[8]}};
+assign sdata_mask[(9+1)*8-1:9*8]   = {8{data_bit_sel[9]}};
+assign sdata_mask[(10+1)*8-1:10*8] = {8{data_bit_sel[10]}};
+assign sdata_mask[(11+1)*8-1:11*8] = {8{data_bit_sel[11]}};
+assign sdata_mask[(12+1)*8-1:12*8] = {8{data_bit_sel[12]}};
+assign sdata_mask[(13+1)*8-1:13*8] = {8{data_bit_sel[13]}};
+assign sdata_mask[(14+1)*8-1:14*8] = {8{data_bit_sel[14]}};
+assign sdata_mask[(15+1)*8-1:15*8] = {8{data_bit_sel[15]}};
 `else
 generate 
 	for (genvar gi=0; gi<16; gi=gi+1) begin
-		assign sdata_mask[(gi+1)*8-1:gi*8] = {8{data_bit[gi]}};
+		assign sdata_mask[(gi+1)*8-1:gi*8] = {8{data_bit_sel[gi]}};
 	end
 endgenerate
 `endif // IVERILOG
 assign sdata_ddr_mask = sdata_ddr & sdata_mask;
-assign sdata_ddr_merge = sdata_ddr_mask | sdata_ddr_shift;
+//assign sdata_ddr_merge = sdata_ddr_mask | sdata_ddr_shift;
+// sdata_ddr_mask>> (maddr_ddr_pre-1) <<9 = sdata_ddr_mask<<(8-maddr_ddr_pre)
+// ** maddr_ddr_pre[0, 15] if (maddr_ddr_pre<8 && )
+// TODO
+assign sdata_ddr_merge = ((sdata_ddr_mask>>(data_bit_sel_cnt*8))<<(data_bit_cnt*8)) | sdata_ddr_shift;
 always @(posedge xclk or negedge xrst_n) 
     if(~xrst_n) begin
 		sdata_ddr_shift <= 128'h0;
@@ -1042,16 +1211,21 @@ always @(posedge xclk or negedge xrst_n)
 	else begin
 		if(rvalid_m & ~fifo_m2_full) 
 			if(data_bit[0])
-				sdata_ddr_shift <= sdata_ddr_mask;
+				sdata_ddr_shift <= sdata_ddr_mask>>(data_bit_sel_cnt*8);
 			else
 				sdata_ddr_shift <= sdata_ddr_merge;
 	end
+
+wire [3:0] next_araddr;
+assign next_araddr = ar_a_fifo[ar_a_rptr];
 
 reg mwrite_sram_done;
 always @(posedge xclk or negedge xrst_n) 
     if(~xrst_n) begin
 		map_num <= 'h0;
 		stride_cnt <= 'h0;
+		stride_cnt_r <= 'h0;
+		stride_cnt_ext <= 'h0;
 		stride_cnt_y <= 'h0;
 		line_nxt <= 'h0;
 		data_bit <= 16'h1;
@@ -1069,30 +1243,45 @@ always @(posedge xclk or negedge xrst_n)
 				mwrite_sram_done <= 1'b1;
 			end
 		end
-        if(ex_dma_r & ~ex_dma_r2 & zone_trans) begin
+        if(ex_dma_start) begin
 		    map_num <= 'h0;
 		    stride_cnt <= 'h0;
+		    stride_cnt_r <= 'h0;
+		    stride_cnt_ext <= 'h0;
 		    stride_cnt_y <= 'h0;
 		    line_nxt <= 'h0;
 			rlast_s_r <= 1'b0;
 			data_bit <= 16'h1;
+			data_bit_cnt <= 4'h0;
+			data_bit_sel <= 16'h1;
+			data_bit_sel_cnt <= 4'h0;
         end
-        else if(|stride & dma_en_m2 & (mode_m2iob0 | mode_m2iob1) 
+        //else if(|stride & dma_en_m2 & (mode_m2iob0 | mode_m2iob1) 
+        else if(remap_type0 & dma_en_m2 & (mode_m2iob0 | mode_m2iob1) 
 		    //& ddr_r_reqb & ~fifo_m2_full & svalid_ddr & ~dma_done_ddr_rreq) begin
 		    //& ~fifo_m2_full & svalid_ddr & ~dma_done_ddr_rreq) begin
 		    //& ~fifo_m2_full & ~dma_done_ddr_rreq) begin
 		    & ~fifo_m2_full & ~mwrite_sram_done) begin
 			rlast_s_r <= rlast_m;
-		    //- if(rlast_s_r) begin
-			//- 	data_bit <= 16'b0;
-			//-     data_bit[maddr_ddr_pre[3:0]] <= 1'b1;
-			//- end
-		    //- else begin
-			//-     data_bit <= {data_bit[14:0], data_bit[15]};
-		    //- end
-			if(rvalid_m)
-			     data_bit <= {data_bit[14:0], data_bit[15]};
+		    if(rlast_s_r) begin
+				data_bit_sel <= 16'b0;
+			    //data_bit_sel[maddr_ddr_pre[3:0]-1] <= 1'b1;
+			    data_bit_sel[next_araddr] <= 1'b1;
+				//data_bit_sel_cnt <= maddr_ddr_pre[3:0]-'h1;
+				data_bit_sel_cnt <= next_araddr;
+			end
+		    else begin
+				if(rvalid_m) begin
+			    	data_bit_sel <= {data_bit_sel[14:0], data_bit_sel[15]};
+					data_bit_sel_cnt <= data_bit_sel_cnt + 'h1;
+				end
+		    end
+			if(rvalid_m) begin
+			    data_bit <= {data_bit[14:0], data_bit[15]};
+                data_bit_cnt <= data_bit_cnt + 'h1;
+			end
 		    //if(rlast_m) begin
+			stride_cnt_r <= stride_cnt;
 		    if(mread_ddr & arready_in) begin
 			    if(stride_cnt==stride) begin
 			    	map_num <= map_num + 'h1;
@@ -1100,20 +1289,27 @@ always @(posedge xclk or negedge xrst_n)
 			    	stride_cnt_y <= stride_cnt_y + 8'b1;
 			    	//if(stride_cnt_y==stride_inc) begin
 			    	if(stride_cnt_y==stride_cnt_x[7:0]) begin
+					    stride_cnt_ext <= 1'b1;
 			    		line_nxt <= line_nxt + 'h1;
 			    		stride_cnt_y <= 'h0;
 			    		map_num <= 'h0;
 			    	end
 			    end
 			    else begin
+			        stride_cnt_ext <= 1'b0;
 			    	stride_cnt <= stride_cnt + 2'b1;
 			    end
 		    end
+			else begin
+			    //stride_cnt_ext <= 1'b0;
+			end
 		end
 	end
-assign rddr_size = |stride ? 3'h0 : 3'h4;
+//assign rddr_size = |stride ? 3'h0 : 3'h4;
+assign rddr_size = remap_type0 ? 3'h0 : 3'h4;
 //assign rddr_len = |stride ? available_bytes-4'b1 : 4'd3;
-assign rddr_len = |stride ? available_bytes-4'b1 : arnum;
+//assign rddr_len = |stride ? available_bytes-4'b1 : arnum;
+assign rddr_len = remap_type0 ? available_bytes-4'b1 : arnum;
 
 
 wire over_one_xfer;
@@ -1135,6 +1331,47 @@ always @(posedge xclk or negedge xrst_n)
 	end
 	else begin
 		raddr_ddr_cnt <= raddr_ddr_cnt + 'h1;
+	end
+//- buffer araddr
+assign ar_a_fifo_push = ddr_r_reqb;
+assign ar_a_fifo_pop = rlast_m & rvalid_m & ~fifo_m2_full;
+assign ar_a_fifo_conflict = ar_a_fifo_push & ar_a_fifo_pop;
+always @(posedge xclk or negedge xrst_n) 
+    if(~xrst_n) begin
+		ar_a_fifo[0] <= 'h0;
+		ar_a_fifo[1] <= 'h0;
+		ar_a_fifo[2] <= 'h0;
+		ar_a_wptr <= 'h0;
+		ar_a_rptr <= 'h0;
+		ar_a_fifo_num <= 'h0;
+	end
+	else begin
+		if(ex_dma_start | ~remap_type0) begin
+		    ar_a_wptr <= 'h0;
+		    ar_a_rptr <= 'h0;
+		    ar_a_fifo_num <= 'h0;
+		end
+		else begin
+		    if(ar_a_fifo_conflict) begin
+		        ar_a_fifo_num <= ar_a_fifo_num;
+		    end
+		    else begin
+		        if(ar_a_fifo_push) begin
+		            ar_a_fifo_num <= ar_a_fifo_num + 'h1;
+		        end
+		        if(ar_a_fifo_pop) begin
+		            ar_a_fifo_num <= ar_a_fifo_num - 'h1;
+		        end
+		    end
+			//
+		    if(ar_a_fifo_push) begin
+		    	ar_a_wptr <= ar_a_wptr + 'h1;
+		    	ar_a_fifo[ar_a_wptr] <= maddr_ddr_remap[3:0];
+		    end
+		    if(ar_a_fifo_pop) begin
+		    	ar_a_rptr <= ar_a_rptr + 'h1;
+		    end
+		end
 	end
 
 //-------------------------------------------------------------
@@ -1193,7 +1430,7 @@ always @(posedge xclk or negedge xrst_n)
 			aw_rptr_r <= 'h0;
 			awfifo_out <= 'h0;
 		end
-        if(ex_dma_r & ~ex_dma_r2 & zone_trans) begin
+        if(ex_dma_start) begin
 			if(mread_ddr & arready_in) begin
             	//maddr_ddr <= maddr_ddr_start + 'h10;
             	maddr_ddr <= maddr_ddr_start + burst_len;
@@ -1220,7 +1457,7 @@ always @(posedge xclk or negedge xrst_n)
 			awnum <= awnum_pre;
         end
 
-        if(ex_dma_r & ~ex_dma_r2 & zone_trans) begin
+        if(ex_dma_start) begin
             ddr_wr_resp_cnt <= maddr_ddr_start;
             ddr_wr_req_cnt <= maddr_ddr_start;
             ddr_aw_req_cnt <= maddr_ddr_start;
@@ -1483,7 +1720,8 @@ assign dma_done_mask = ddr_wr_resp_cnt>maddr_ddr_start;
 //assign dma_done_ddr = mode_2m|mode_m2 ? (maddr_ddr-maddr_ddr_start) >= len_max: 1'b0; 
 //assign dma_done_ddr = mode_2m|mode_m2 ? (ddr_wr_resp_cnt-maddr_ddr_start) >= len_max: 1'b0; 
 //assign dma_done_ddr = |stride? (maddr_ddr_pre >= map_size) : 
-assign dma_done_ddr = |stride? sort_done : 
+//assign dma_done_ddr = |stride? sort_done : 
+assign dma_done_ddr = remap_type0? sort_done : 
                //(ex_dma_r2 & (mode_2m ? (ddr_wr_resp_cnt-maddr_ddr_start+1) >= (len_max<<1) :
                (ex_dma_r2 & (mode_2m ? (dma_done_ddr_awreq&dma_done_ddr_wreq) :
                       mode_m2 ? dma_done_mask &((ddr_wr_resp_cnt-maddr_ddr_start) >= len_max) :
@@ -1502,7 +1740,8 @@ assign dma_done_ddr_wreq_m1 = mode_2m ? ((ddr_wr_req_cnt-maddr_ddr_start+1)>=(le
                                 wready_m & mwrite_ddr_data:
                                 1'b0; 
 //assign dma_done_ddr_rreq = |stride? (maddr_ddr_pre >= map_size) : mode_m2 ? 
-assign dma_done_ddr_rreq = |stride? sort_done : mode_m2 ? 
+//assign dma_done_ddr_rreq = |stride? sort_done : mode_m2 ? 
+assign dma_done_ddr_rreq = remap_type0? sort_done : mode_m2 ? 
 								//dma_done_mask &((maddr_ddr-maddr_ddr_start) >= (len_max<<4)) 
 								(ddr_r_reqb & ((maddr_ddr-maddr_ddr_start+burst_len) >= (len_max<<4)) | 
 								//(dma_done_mask &((maddr_ddr-maddr_ddr_start) >= (len_max<<4))))
@@ -1541,20 +1780,54 @@ always @(posedge xclk or negedge xrst_n)
 //assign dma_done = dma_done_ddr & dma_done_sram;
 assign sort_done = |line_size_full[1:0] ? (maddr_ddr_pre > map_size) :
 			                              (maddr_ddr_pre >= map_size);
+wire sort_done_mid;
+wire sort_input;
+assign sort_input = sort_done & mwrite_sram_done & ~reorg_type;
+assign sort_done_mid = (mode_m2 & (maddr_sram_pre >= remap_len)) | 
+                       (mode_2m & (maddr_sram_pre+1 > len_max));
+assign remap_type0=|stride & ~reorg_type;
+assign remap_type1=|stride & reorg_type;
+reg [1:0] stride_r;
+always @(posedge xclk or negedge xrst_n)
+    if(~xrst_n) begin
+		stride_r <= 2'b0;
+	end
+	else begin
+		if(ex_dma_lvl_r) begin
+			stride_r <= stride;
+		end
+		else begin
+			if(dma_done)
+				stride_r <= 2'b0;
+		end
+	end
+
+always @(posedge xclk or negedge xrst_n)
+    if(~xrst_n) begin
+		dma_done_sram <= 1'b0;
+	end
+	else begin
+		//dma_done_sram <= |stride? (maddr_ddr_pre >= map_size) : 
+		//dma_done_sram <= remap_type0 ? sort_done & mwrite_sram_done : 
+		dma_done_sram <= |stride ? (sort_input | sort_done_mid): 
+				 		(ex_dma_r2 & (
+				 		mode_m2_down ? (sram_wr_req_cnt-maddr_sram_start) >= len_max: 
+						mode_m2|mode_2m ? (maddr_sram_pre+1) > len_max: 1'b0)); 
+	end
+
 always @(posedge xclk or negedge xrst_n)
     if(~xrst_n) begin
         dma_done <= 1'b0;
 		dma_finish <= 1'b0;
-		dma_done_sram <= 1'b0;
     end
     else begin
-		//dma_done_sram <= |stride? (maddr_ddr_pre >= map_size) : 
-		dma_done_sram <= |stride? sort_done & mwrite_sram_done : 
-				 		(ex_dma_r2 & (
-				 		mode_m2_down ? (sram_wr_req_cnt-maddr_sram_start) >= len_max: 
-						mode_m2|mode_2m ? (maddr_sram_pre+1) > len_max: 1'b0)); 
-		if(|stride) 
-            dma_done <= sort_done & mwrite_sram_done;
+		if(|stride_r & ~reorg_type) begin 
+			if(sort_done & (reorg_type | mwrite_sram_done)) begin
+            	dma_done <= 1'b1;
+            	dma_finish <= 1'b1;
+			end
+            //dma_done <= sort_done & mwrite_sram_done;
+		end
         else if(dma_done_ddr & dma_done_sram) begin
             dma_done <= 1'b1;
 			dma_finish <= 1'b1;
@@ -1562,6 +1835,7 @@ always @(posedge xclk or negedge xrst_n)
         //else if(ex_dma_mix & ~ex_dma_r)
         else if((ex_dma|mode_m2instb_r) & ~ex_dma_lvl_r)
             dma_done <= 1'b0;
+		//
 		if(dma_done)
 			dma_finish <= 1'b0;
     end
@@ -1604,10 +1878,14 @@ always @(posedge xclk or negedge xrst_n)
             ex_zone_wb_wr_finish <= (mode_m2wb416|mode_m2wb256);
             init_inst_finish <= mode_m2instb_r;
             init_prot_finish <= mode_m2instb_r;
-            zone3_wr_finish <= (mode_iob02m|mode_iob12m) & zone4_addr_match & zone_en_s[3];
-            zone2_wr_finish <= (mode_iob02m|mode_iob12m) & zone3_addr_match & zone_en_s[2]; 
-            zone1_rd_finish <= (mode_m2iob0|mode_m2iob1) & zone2_addr_match & zone_en_s[1]; 
-            zone0_rd_finish <= (mode_m2iob0|mode_m2iob1) & zone1_addr_match & zone_en_s[0]; 
+            //-zone3_wr_finish <= (mode_iob02m|mode_iob12m) & zone4_addr_match & zone_en_s[3];
+            //-zone2_wr_finish <= (mode_iob02m|mode_iob12m) & zone3_addr_match & zone_en_s[2]; 
+            //-zone1_rd_finish <= (mode_m2iob0|mode_m2iob1) & zone2_addr_match & zone_en_s[1]; 
+            //-zone0_rd_finish <= (mode_m2iob0|mode_m2iob1) & zone1_addr_match & zone_en_s[0]; 
+            zone3_wr_finish <= mode_2m & zone4_addr_match & zone_en_s[3];
+            zone2_wr_finish <= mode_2m & zone3_addr_match & zone_en_s[2]; 
+            zone1_rd_finish <= mode_m2 & zone2_addr_match & zone_en_s[1] & ~mode_m2instb_r; 
+            zone0_rd_finish <= mode_m2 & zone1_addr_match & zone_en_s[0] & ~mode_m2instb_r; 
 		end
 		else begin
 		    ex_zone_bias_wr_finish <= 1'b0;
@@ -1628,57 +1906,57 @@ assign zone_addr_mismatch = ~(zone1_addr_match |
 							  zone3_addr_match | 
 							  zone4_addr_match);
 
-//- GM
-
-  // AXI write request
-  wire [4-1:0]                         awid;
-  wire                                      awvalid;
-  wire [32-1:0]                         awaddr;
-  wire [8-1:0]                         awlen;
-  wire [2:0]                                awsize;
-  wire [1:0]                                awburst;
-  wire [1:0]                                awlock;
-  wire [3:0]                                awcache;
-  wire [2:0]                                awprot;
-  wire                                      awready;
-
-  // AXI write data
-  wire [4-1:0]                         wid;
-  wire                                      wvalid;
-  wire                                      wlast;
-  wire [DW-1:0]                         wdata;
-  wire [32-1:0]                         wstrb;
-  wire                                      wready;
-
-  // AXI write response
-  wire [4-1:0]                          bid;
-  wire                                       bvalid;
-  wire [1:0]                                 bresp;
-  wire                                       bready;  
-  
-  // AXI read request
-  wire [4-1:0]                         arid;
-  wire                                      arvalid;
-  wire [32-1:0]                         araddr;
-  wire [8-1:0]                         arlen;
-  wire [2:0]                                arsize;
-  wire [1:0]                                arburst;
-  wire [1:0]                                arlock;
-  wire [3:0]                                arcache;
-  wire [2:0]                                arprot;  
-  wire                                      arready;
-
-  // AXI read response & read data
-  wire [4-1:0]                          rid;
-  wire                                       rvalid;
-  wire                                       rlast;
-  wire [DW-1:0]                          rdata;
-  wire [1:0]                                 rresp;
-  wire                                       rready;
+//--//- GM
+//--
+//--  // AXI write request
+//--  wire [4-1:0]                         awid;
+//--  wire                                      awvalid;
+//--  wire [32-1:0]                         awaddr;
+//--  wire [8-1:0]                         awlen;
+//--  wire [2:0]                                awsize;
+//--  wire [1:0]                                awburst;
+//--  wire [1:0]                                awlock;
+//--  wire [3:0]                                awcache;
+//--  wire [2:0]                                awprot;
+//--  wire                                      awready;
+//--
+//--  // AXI write data
+//--  wire [4-1:0]                         wid;
+//--  wire                                      wvalid;
+//--  wire                                      wlast;
+//--  wire [DW-1:0]                         wdata;
+//--  wire [32-1:0]                         wstrb;
+//--  wire                                      wready;
+//--
+//--  // AXI write response
+//--  wire [4-1:0]                          bid;
+//--  wire                                       bvalid;
+//--  wire [1:0]                                 bresp;
+//--  wire                                       bready;  
+//--  
+//--  // AXI read request
+//--  wire [4-1:0]                         arid;
+//--  wire                                      arvalid;
+//--  wire [32-1:0]                         araddr;
+//--  wire [8-1:0]                         arlen;
+//--  wire [2:0]                                arsize;
+//--  wire [1:0]                                arburst;
+//--  wire [1:0]                                arlock;
+//--  wire [3:0]                                arcache;
+//--  wire [2:0]                                arprot;  
+//--  wire                                      arready;
+//--
+//--  // AXI read response & read data
+//--  wire [4-1:0]                          rid;
+//--  wire                                       rvalid;
+//--  wire                                       rlast;
+//--  wire [DW-1:0]                          rdata;
+//--  wire [1:0]                                 rresp;
+//--  wire                                       rready;
 
 //assign ddr_respb = svalid_ddr & mready_ddr;
 //assign ddr_respb = (|stride ? (data_bit[15]&rvalid_m&rready_m) : svalid_ddr) & mready_ddr;
-assign ddr_respb = ( |stride ? (data_bit[15]) :
+assign ddr_respb = ( remap_type0 ? (data_bit[15]) :
 				    ((bvalid_m /*& bready_m*/) | (rvalid_m & ~fifo_m2_full))
 				   ) 
 				  // & mready_ddr
@@ -1728,7 +2006,7 @@ assign wlast_m = mwrite_ddr_data &
 // Read Address Channel
 assign arid_m = arid_cfg;
 assign arvalid_m = mread_ddr;
-assign araddr_m = |stride ? maddr_ddr_remap : maddr_ddr[31:0];
+assign araddr_m = remap_type0 ? maddr_ddr_remap : maddr_ddr[31:0];
 assign arlen_m = rddr_len;
 assign arsize_m = rddr_size;
 assign arburst_m = arburst_cfg;

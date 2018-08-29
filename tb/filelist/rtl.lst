@@ -6,27 +6,33 @@
 
 /home/common/EDA/designware/DW_minmax.v
 
-../../lib/sram/rfsp1024x19.v
-../../lib/sram/rfsp128x128.v
-../../lib/sram/rfsp512x128.v
-../../lib/sram/sramsp2048x128.v
-../../lib/sram/sramsp32768x36.v
-../../lib/sram/sramsp4096x128.v
-../../lib/sram/sramsp4096x144.v
-../../lib/sram/sramsp8192x128.v
-../../lib/sram/sramsp8192x144.v
-../../lib/sram/sramsp8192x32.v
+// ../../lib/sram/rfsp1024x19.v
+// ../../lib/sram/rfsp128x128.v
+// ../../lib/sram/rfsp512x128.v
+// ../../lib/sram/sramsp2048x128.v
+// ../../lib/sram/sramsp32768x36.v
+// ../../lib/sram/sramsp4096x128.v
+// ../../lib/sram/sramsp4096x144.v
+// ../../lib/sram/sramsp8192x128.v
+// ../../lib/sram/sramsp8192x144.v
+// ../../lib/sram/sramsp8192x32.v
 
-../../lib/sram/S40SPRA_NPU_4096X128.v
-../../lib/sram/S40SPRA_NPU_8192X128.v
-../../lib/sram/S40SPRA_NPU_8192X32.v
-../../lib/sram/S40SPRF_NPU_1024X19.v
-../../lib/sram/S40SPRF_NPU_128X128.v
+// ../../lib/sram/S40SPRA_NPU_4096X128.v
+// ../../lib/sram/S40SPRA_NPU_8192X128.v
+// ../../lib/sram/S40SPRA_NPU_8192X32.v
+// ../../lib/sram/S40SPRF_NPU_1024X19.v
+// ../../lib/sram/S40SPRF_NPU_128X128.v
+
+../../lib/sram/S40DPRA_NPU_1024X19.v
+../../lib/sram/S40DPRA_NPU_128X64.v
+../../lib/sram/S40DPRA_NPU_1024X64.v
+../../lib/sram/S40DPRA_NPU_2048X32.v
 
 ../../lib/sram/S40DPRF_NPU_1024X30.v
 
-../../lib/sram_wrapper/rfsp_wrapper.v
-../../lib/sram_wrapper/sramsp_wrapper.v
+../../lib/sram_wrapper/sramdp_wrapper.v
+// ../../lib/sram_wrapper/rfsp_wrapper.v
+// ../../lib/sram_wrapper/sramsp_wrapper.v
 ../../lib/sram_wrapper/instb_sram2p_wrapper.v
 ../../lib/sram_wrapper/iob_sram2p_wrapper.v
 ../../lib/sram_wrapper/wb_sram2p_wrapper.v
@@ -70,6 +76,11 @@
 ../../rtl/npu_core/round_32x16b.v
 ../../rtl/npu_core/round_16b_8b.v
 ../../rtl/npu_core/relu.v
+../../rtl/npu_core/act_fun.v
+../../rtl/npu_core/act_lut_bram.v
+../../rtl/npu_core/linear_fun.v
+../../rtl/npu_core/lookup_table.v
+../../rtl/npu_core/lut_addr_gen.v
 ../../rtl/npu_core/sorter.v
 ../../rtl/npu_core/sort_E1.v
 ../../rtl/npu_core/sort_E2.v
@@ -79,8 +90,12 @@
 ../../rtl/npu_core/pe_add.v
 ../../rtl/npu_core/pe_ctr.v
 ../../rtl/npu_core/pe_mul.v
+../../rtl/npu_core/pe_mac_dot.v
 ../../rtl/npu_core/xpe.v
 ../../rtl/npu_core/pe_mac.v
+../../rtl/npu_core/iagu_actfun.v
+../../rtl/npu_core/IAGU_DOT.v
+../../rtl/npu_core/IAGU_DOTACC.v
 ../../rtl/npu_core/IAGU_POOL.v
 ../../rtl/npu_core/IAGU_ADD.v
 ../../rtl/npu_core/IAGU_CONV_GADDR.v
@@ -122,7 +137,7 @@
 -v /home/common/NPU/npu_project/npu_src0602/internal_ip/simple_dual_port_ram512x128/simulation/blk_mem_gen_v8_4.v
 -v /home/common/NPU/npu_project/npu_src0602/internal_ip/simple_dual_port_ram512x128/sim/simple_dual_port_ram512x128.v
 
-///home/common/NPU/npu_project/npu_src0602/internal_ip/inst_buffer/simulation/blk_mem_gen_v8_3.v
+// /home/common/NPU/npu_project/npu_src0602/internal_ip/inst_buffer/simulation/blk_mem_gen_v8_3.v
 /home/common/NPU/npu_project/npu_src0602/internal_ip/Fifo30x1K/hdl/fifo_generator_v13_2_rfs.v
 /home/common/NPU/npu_project/npu_src0602/internal_ip/Fifo30x1K/simulation/fifo_generator_vlog_beh.v
 /home/common/NPU/npu_project/npu_src0602/internal_ip/Fifo30x1K/sim/Fifo30x1K.v

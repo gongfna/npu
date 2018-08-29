@@ -24,11 +24,12 @@ module inst_ctrl(
 // npu_core
     output o_calculate_enable    ,
     input  i_calculate_end       ,
-    output [2:0] o_mode,
-    output [11:0] o_addr_start_d        ,
-    output [11:0] o_addr_start_w        ,
-    output [11:0] o_addr_start_s1       ,
-    output [11:0] o_addr_start_s2       ,
+    output [3:0] o_mode,
+    output [15:0] o_addr_start_d        ,
+    output [15:0] o_addr_start_d2        ,
+    output [9:0] o_addr_start_w        ,
+    output [15:0] o_addr_start_s1       ,
+    output [15:0] o_addr_start_s2       ,
     output [7:0] o_addr_start_b        ,
     output [1:0]  o_buffer_flag         ,
     output [7:0]  o_i_x_length      ,
@@ -36,7 +37,7 @@ module inst_ctrl(
     output o_b_first_tiling      ,
     output o_b_last_tiling       ,
     output [7:0]  o_part_num            ,
-    output [2:0]  o_last_part           ,
+    output [3:0]  o_last_part           ,
     output [7:0]  o_o_line_size       ,
     output [7:0]  o_o_x_length     ,
     output [7:0]  o_o_y_length     ,
@@ -53,14 +54,21 @@ module inst_ctrl(
     output [3:0]  o_w_q_encode          ,
     output [3:0]  o_i_q_encode          ,
     output [3:0]  o_o_q_encode            ,
+    output [15:0] o_Input_sorter_num,
+    output o_sorter_op, 
+    output o_square_mode,
+    output o_src_from2buffer,
+    output o_dot_en     ,
+    output o_dotacc_en ,
+    output o_actfun_en,
     output [7:0]  o_dma_i_line_size  ,
     output [1:0]  o_dma_i_stride     ,
-    output [1:0]  o_dma_i_pad_num    ,
-    output [15:0] o_Input_sorter_num,
-    output o_sorter_op
+    output [1:0]  o_dma_i_pad_num 
+   // output [15:0] o_Input_sorter_num,
+    //output o_sorter_op   
    // output [2:0]  o_softmax_o_num       ,
-   // output [15:0] o_softmax_i_num       ,
-  //  output [11:0] o_softmax_dest_addr   ,
+  //  output [15:0] o_softmax_i_num       ,
+   // output [11:0] o_softmax_dest_addr   ,
    // output [11:0] o_softmax_src_addr
 
 
@@ -75,10 +83,12 @@ wire      c_err_inst;
 
 
 
+
+
 decoder u_decoder (
 	.i_clk(i_clk),
 	.i_rst_n  (i_rst_n  ),
-	.clr    (i_start_npu|i_dma_finish   ),
+	.clr    (i_start_npu | i_dma_finish ),
 
 	.inst_in    (i_inst_in   ),
 	.inst_valid (i_inst_valid),
@@ -87,6 +97,7 @@ decoder u_decoder (
 	.o_mode    (o_mode  ),
 
 	.o_addr_start_d (o_addr_start_d),
+	.o_addr_start_d2 (o_addr_start_d2),
 	.o_addr_start_w (o_addr_start_w),
 	.o_addr_start_s (o_addr_start_s1),
 	.o_addr_start_s2 (o_addr_start_s2),
@@ -119,13 +130,19 @@ decoder u_decoder (
 	.o_w_q_encode  (o_w_q_encode  ),
 	.o_i_q_encode  (o_i_q_encode  ),
 	.o_o_q_encode  (o_o_q_encode  ),
+	
+	.o_sorter_op(o_sorter_op),
+	.o_Input_sorter_num(o_Input_sorter_num),
+	.o_dot_en    (o_dot_en   ),
+	.o_dotacc_en (o_dotacc_en),
+	.o_actfun_en (o_actfun_en),
+	.o_square_mode(o_square_mode),
+	.o_src_from2buffer(o_src_from2buffer),
 
 	//.o_softmax_o_num    (o_softmax_o_num    ),
 	//.o_softmax_i_num    (o_softmax_i_num    ),
 	//.o_softmax_dest_addr(o_softmax_dest_addr),
 	//.o_softmax_src_addr (o_softmax_src_addr ),
-	.o_sorter_op(o_sorter_op),
-	.o_Input_sorter_num(o_Input_sorter_num),
 
 	.o_dma_mode  (o_dma_mode  ),
 	.o_src_start (o_src_start ),
@@ -134,7 +151,7 @@ decoder u_decoder (
 	.o_jump_pc                (c_jump_pc              ),
 	.o_wait_last_noblock_dma  (c_wait_last_noblock_dma),
 	.o_be_noblock             (c_be_noblock           ),
-        .o_be_stream (o_be_stream ),
+  .o_be_stream (o_be_stream ),
 	.o_err_inst               (c_err_inst             ),
 	.o_dma_i_line_size   (o_dma_i_line_size),
 	.o_dma_i_stride      (o_dma_i_stride   ),

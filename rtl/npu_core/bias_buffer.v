@@ -6,7 +6,7 @@
 // 
 // Create Date: 2018/01/22 00:21:00
 // Design Name: 
-// Module Name: io_buffer
+// Module Name: bias_buffer
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -22,7 +22,7 @@
 
 module bias_buffer #(
     parameter BIAS_INIT_FILE = "", // Specify name/location of RAM initialization file if using one (leave blank if not)
-	parameter REG_OUT=1'b1
+	parameter REG_OUT=1'b0
     )(
     input i_clk, 
     input i_rst_n, 
@@ -45,7 +45,9 @@ module bias_buffer #(
 
 localparam WORDSWD=7;
 localparam BITS=512;
-wire [BITS-1:0] ram_out;
+localparam RAM_BITS=64;
+wire [BITS-1:0] ram_outa;
+wire [BITS-1:0] ram_outb;
 wire [WORDSWD-1:0] c_ram_addr;
 reg r_ram_dat_vld;
 
@@ -54,21 +56,24 @@ assign o_ram_dat_vld = r_ram_dat_vld;
 
 generate 
 if(REG_OUT==1'b1) begin 
-reg [BITS-1:0] ram_out_r;
-assign o_ram_dat = ram_out_r;
-assign o_bias_bramctl_rdata = ram_out_r;
+reg [BITS-1:0] ram_outa_r;
+reg [BITS-1:0] ram_outb_r;
+assign o_bias_bramctl_rdata = ram_outa_r;
+assign o_ram_dat = ram_outb_r;
 
 always@(posedge i_clk or negedge i_rst_n)
 	if(~i_rst_n)begin
-		ram_out_r <= 'h0;
+		ram_outa_r <= 'h0;
+		ram_outb_r <= 'h0;
 	end
 	else begin
-		ram_out_r <= ram_out;
+		ram_outa_r <= ram_outa;
+		ram_outb_r <= ram_outb;
 	end
 end
 else begin //REG_OUT==1'b0
-assign o_ram_dat = ram_out;
-assign o_bias_bramctl_rdata = ram_out;
+assign o_bias_bramctl_rdata = ram_outa;
+assign o_ram_dat = ram_outb;
 end
 endgenerate
 
@@ -81,19 +86,6 @@ always @(posedge i_clk or negedge i_rst_n)
 		r_ram_dat_vld <= i_ram_rd_en;
 	end
     
-//   simple_dual_port_ram512x128 u_bias (
-//      .clka(i_clk),    // input wire clka
-//      //write port
-//      .ena(i_bias_bramctl_en),      // input wire ena
-//      .wea(i_bias_bramcrl_be & {64{i_bias_bramctl_we}}),      // input wire [63 : 0] wea
-//      .addra(i_bias_bramctl_addr[7:0]),  // input wire [6 : 0] addra
-//      .dina(i_bias_bramctl_wdata),    // input wire [511 : 0] dina
-//      //read port
-//      .clkb(i_clk),    // input wire clkb
-//      .enb(i_ram_rd_en),      // input wire enb
-//      .addrb(c_ram_addr),  // input wire [6 : 0] addrb
-//      .doutb(o_ram_dat)  // output wire [511 : 0] doutb
-//    );
 `ifdef FPGA
 biasb_sram2p_wrapper
 biasb_ram
@@ -107,12 +99,14 @@ biasb_ram
   .clkb(i_clk), 
   .enb(i_ram_rd_en), 
   .addrb(c_ram_addr[6:0]), 
-  .doutb(ram_out)
+  .doutb(ram_outb)
 );
 `else
 
-wire cen;
-assign cen = ~(i_bias_bramctl_en | i_ram_rd_en);
+wire cena;
+wire cenb;
+assign cena = ~i_bias_bramctl_en;
+assign cenb = ~i_ram_rd_en;
 
 generate 
 wire [BITS-1:0] wen;
@@ -121,87 +115,121 @@ assign wen[8*(i+1)-1:8*i] = {8{~(i_bias_bramctl_be[i]&i_bias_bramctl_we)}};
 end
 endgenerate
 
-wire [WORDSWD-1:0] addr;
-assign addr = i_ram_rd_en ? c_ram_addr : i_bias_bramctl_addr;
+wire gwena;
+assign gwena = ~i_bias_bramctl_we;
 
-wire [BITS-1:0] wdata;
-assign wdata = i_bias_bramctl_wdata;
+wire GWENB;
+assign GWENB = 1'b1;
 
-wire [2:0] ema;
-assign ema = 3'b010;
+wire [2:0] EMA;
+assign EMA = 3'b010;
 
-wire [1:0] emaw;
-assign emaw = 2'b00;
+wire [1:0] EMAW;
+assign EMAW = 2'b00;
 
-wire gwen;
-assign gwen = ~i_bias_bramctl_we;
 
-wire ret1n;
-assign ret1n = 1'b1;
+//- TestOut
+  wire  CENYA;
+  wire [RAM_BITS-1:0] WENYA;
+  wire [WORDSWD-1:0] AYA;
+  wire  CENYB;
+  wire [RAM_BITS-1:0] WENYB;
+  wire [WORDSWD-1:0] AYB;
+  wire [1:0] SOA;
+  wire [1:0] SOB;
+  wire  GWENYA;
+  wire  GWENYB;
+  wire [RAM_BITS-1:0] QA;
+//- TestIn
+  wire  TENA;
+  wire  TCENA;
+  wire [RAM_BITS-1:0] TWENA;
+  wire [WORDSWD-1:0] TAA;
+  wire [RAM_BITS-1:0] TDA;
+  wire  TENB;
+  wire  TCENB;
+  wire [RAM_BITS-1:0] TWENB;
+  wire [WORDSWD-1:0] TAB;
+  wire [RAM_BITS-1:0] TDB;
+  wire [1:0] SIA;
+  wire  SEA;
+  wire  DFTRAMBYP;
+  wire [1:0] SIB;
+  wire  SEB;
+  wire RET1N;
+  wire  COLLDISN;
+assign TENA = 1'b1;
+assign TCENA = 1'b1;
+assign TWENA = {RAM_BITS{1'b1}};
+assign TAA = {WORDSWD{1'b0}};
+assign TDA = {RAM_BITS{1'b0}};
+assign TENB = 1'b1;
+assign TCENB = 1'b1;
+assign TWENB = {RAM_BITS{1'b1}};
+assign TAB = {WORDSWD{1'b0}};
+assign TDB = {RAM_BITS{1'b0}};
+assign SIA = 2'b0;
+assign SEA = 1'b0;
+assign DFTRAMBYP = 1'b0;
+assign SIB = 2'b0;
+assign SEB = 1'b0;
+assign RET1N = 1'b1;
+assign COLLDISN = 1'b1;
+//---------------------------------------------------
+//-------------------------------------------------------
 
-rfsp_wrapper
-#(WORDSWD, 128)
-biasb_ram3
+generate 
+for(genvar num=0;num<(BITS/RAM_BITS);num=num+1)
+sramdp_wrapper
+#(WORDSWD, RAM_BITS)
+biasb_ram
 (
-.Q(ram_out[128+128+128+127:128+128+128+0]), 
-.CLK(i_clk), 
-.CEN(cen), 
-.WEN(wen[128+128+128+127:128+128+128+0]), 
-.A(addr), 
-.D(wdata[128+128+128+127:128+128+128+0]), 
-.EMA(ema), 
-.EMAW(emaw), 
-.GWEN(gwen), 
-.RET1N(ret1n)
+.CENYA(CENYA), 
+.WENYA(WENYA), 
+.AYA(AYA), 
+.CENYB(CENYB), 
+.WENYB(WENYB), 
+.AYB(AYB), 
+.SOA(SOA), 
+.SOB(SOB),
+.TENA(TENA),
+.TCENA(TCENA), 
+.TWENA(TWENA), 
+.TAA(TAA), 
+.TDA(TDA), 
+.TENB(TENB), 
+.TCENB(TCENB), 
+.TWENB(TWENB), 
+.TAB(TAB), 
+.TDB(TDB), 
+.SIA(SIA), 
+.SEA(SEA), 
+.DFTRAMBYP(DFTRAMBYP), 
+.SIB(SIB), 
+.SEB(SEB), 
+.RET1N(RET1N), 
+.COLLDISN(COLLDISN), 
+.QA(ram_outa[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.CLKA(i_clk), 
+.CENA(cena), 
+.WENA(wen[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.GWENA(gwena), 
+.AA(i_bias_bramctl_addr), 
+.DA(i_bias_bramctl_wdata[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.QB(ram_outb[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.CLKB(i_clk), 
+.CENB(cenb), 
+.WENB({RAM_BITS{1'b1}}), 
+.GWENB(GWENB), 
+.AB(c_ram_addr), 
+.DB({RAM_BITS{1'b0}}), 
+.EMAA(EMA), 
+.EMAWA(EMAW), 
+.EMAB(EMA), 
+.EMAWB(EMAW)
 );
+endgenerate
 
-rfsp_wrapper
-#(WORDSWD, 128)
-biasb_ram2
-(
-.Q(ram_out[128+128+127:128+128+0]), 
-.CLK(i_clk), 
-.CEN(cen), 
-.WEN(wen[128+128+127:128+128+0]), 
-.A(addr), 
-.D(wdata[128+128+127:128+128+0]), 
-.EMA(ema), 
-.EMAW(emaw), 
-.GWEN(gwen), 
-.RET1N(ret1n)
-);
-
-rfsp_wrapper
-#(WORDSWD, 128)
-biasb_ram1
-(
-.Q(ram_out[128+127:128+0]), 
-.CLK(i_clk), 
-.CEN(cen), 
-.WEN(wen[128+127:128+0]), 
-.A(addr), 
-.D(wdata[128+127:128+0]), 
-.EMA(ema), 
-.EMAW(emaw), 
-.GWEN(gwen), 
-.RET1N(ret1n)
-);
-
-rfsp_wrapper
-#(WORDSWD, 128)
-biasb_ram0
-(
-.Q(ram_out[127:0]), 
-.CLK(i_clk), 
-.CEN(cen), 
-.WEN(wen[127:0]), 
-.A(addr), 
-.D(wdata[127:0]), 
-.EMA(ema), 
-.EMAW(emaw), 
-.GWEN(gwen), 
-.RET1N(ret1n)
-);
 `endif //`ifdef FPGA
 
   

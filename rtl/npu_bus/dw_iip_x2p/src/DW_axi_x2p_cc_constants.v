@@ -267,7 +267,7 @@
 //  
 // Dependencies: Any address must not be contained in any other range and 
 // must have a minimum size of 1 KB, and must be aligned to a 1 KB boundary.
-`define X2P_START_PADDR_S0 64'h0000000000000400
+`define X2P_START_PADDR_S0 64'h0000000040000400
 
 
 // Name:         X2P_END_PADDR_S0
@@ -278,7 +278,7 @@
 //  
 // Dependencies: Any address must not be contained in any other range and 
 // must have a minimum size of 1 KB, and must be aligned to a 1 KB boundary.
-`define X2P_END_PADDR_S0 64'h00000000000007ff
+`define X2P_END_PADDR_S0 64'h00000000400007ff
 
 
 // Name:         X2P_IS_APB3_S0
@@ -852,15 +852,15 @@
 // `define X2P_APB3_S15
 
 
-`define X2P_AXI_START_ADDR 64'h400
+`define X2P_AXI_START_ADDR 64'h40000400
 
 
-`define X2P_AXI_END_ADDR 64'h7ff
+`define X2P_AXI_END_ADDR 64'h400007ff
 
 
 
 // Name:         X2P_START_PADDR_32_S0
-// Default:      0x00000400 (X2P_START_PADDR_S0 & 0x00000000ffffffff)
+// Default:      0x40000400 (X2P_START_PADDR_S0 & 0x00000000ffffffff)
 // Values:       0x00000000, ..., 0xfffffc00
 // Enabled:      0
 // 
@@ -868,11 +868,11 @@
 // to decode the addressed APB Slave. This parameter 
 // is non-editable and is used for visual purposes only 
 // in the coreConsultant GUI.
-`define X2P_START_PADDR_32_S0 32'h00000400
+`define X2P_START_PADDR_32_S0 32'h40000400
 
 
 // Name:         X2P_END_PADDR_32_S0
-// Default:      0x000007ff (X2P_END_PADDR_S0 & 0x00000000ffffffff)
+// Default:      0x400007ff (X2P_END_PADDR_S0 & 0x00000000ffffffff)
 // Values:       0x000003ff, ..., 0xffffffff
 // Enabled:      0
 // 
@@ -880,7 +880,7 @@
 // to decode the addressed APB Slave. This parameter 
 // is non-editable and is used for visual purposes only 
 // in the coreConsultant GUI.
-`define X2P_END_PADDR_32_S0 32'h000007ff
+`define X2P_END_PADDR_32_S0 32'h400007ff
 
 
 // Name:         X2P_START_PADDR_32_S1

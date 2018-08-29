@@ -22,7 +22,7 @@
 
 module wib_buffer#(
     parameter INIT_FILE_B = "", // Specify name/location of RAM initialization file if using one (leave blank if not)
-	parameter REG_OUT=1'b1
+	parameter REG_OUT=1'b0
     )(
     input  i_clk, 
     input  i_rst_n, 
@@ -41,29 +41,32 @@ module wib_buffer#(
 );
 localparam WORDSWD=10;
 localparam BITS=19;
-wire [BITS-1:0] ram_out;
+wire [BITS-1:0] ram_outa;
+wire [BITS-1:0] ram_outb;
 reg r_wib_rdat_vld;
 
-//assign o_wib_rdat=ram_out[18:0];
 assign o_wib_rdat_vld=r_wib_rdat_vld;
 
 generate 
 if(REG_OUT==1'b1) begin 
-reg [BITS-1:0] ram_out_r;
-assign o_wib_rdat=ram_out_r;
-assign o_wib_bramctl_rdata = {13'h0, ram_out_r};
+reg [BITS-1:0] ram_outa_r;
+reg [BITS-1:0] ram_outb_r;
+assign o_wib_rdat=ram_outb_r;
+assign o_wib_bramctl_rdata = {13'h0, ram_outa_r};
 
 always@(posedge i_clk or negedge i_rst_n)
 	if(~i_rst_n)begin
-		ram_out_r <= 'h0;
+		ram_outa_r <= 'h0;
+		ram_outb_r <= 'h0;
 	end
 	else begin
-		ram_out_r <= ram_out;
+		ram_outa_r <= ram_outa;
+		ram_outb_r <= ram_outb;
 	end
 end
 else begin //REG_OUT==1'b0
-assign o_wib_rdat=ram_out;
-assign o_wib_bramctl_rdata = ram_out;
+assign o_wib_rdat=ram_outb;
+assign o_wib_bramctl_rdata = ram_outa;
 end
 endgenerate
 
@@ -101,15 +104,17 @@ wib_ram
   .clkb(i_clk), 
   .enb(i_wib_rd_en), 
   .addrb(i_wib_raddr), 
-  .doutb(ram_out)
+  .doutb(ram_outb)
 );
 `else
 //-------------------------------------------------------
 //----------------------- MUX -------------------------
 //---------------------------------------------------
 
-wire cen;
-assign cen = ~(i_wib_bramctl_en | i_wib_rd_en);
+wire cena;
+wire cenb;
+assign cena = ~i_wib_bramctl_en;
+assign cenb = ~i_wib_rd_en;
 
 generate 
 wire [32-1:0] wen;
@@ -118,40 +123,115 @@ assign wen[8*(i+1)-1:8*i] = {8{~(i_wib_bramctl_be[i]&i_wib_bramctl_we)}};
 end
 endgenerate
 
-wire [WORDSWD-1:0] addr;
-assign addr = i_wib_rd_en ? i_wib_raddr : i_wib_bramctl_addr;
+wire [2:0] EMA;
+assign EMA = 3'b010;
 
-wire [BITS-1:0] wdata;
-assign wdata = i_wib_bramctl_wdata[BITS-1:0];
+wire [1:0] EMAW;
+assign EMAW = 2'b00;
 
-wire [2:0] ema;
-assign ema = 3'b010;
+wire gwena;
+assign gwena = ~i_wib_bramctl_we;
+wire GWENB;
+assign GWENB = 1'b1;
 
-wire [1:0] emaw;
-assign emaw = 2'b00;
+//- TestOut
+  wire  CENYA;
+  wire [BITS-1:0] WENYA;
+  wire [WORDSWD-1:0] AYA;
+  wire  CENYB;
+  wire [BITS-1:0] WENYB;
+  wire [WORDSWD-1:0] AYB;
+  wire [1:0] SOA;
+  wire [1:0] SOB;
+  wire  GWENYA;
+  wire  GWENYB;
+  wire [BITS-1:0] QA;
+//- TestIn
+  wire  TENA;
+  wire  TCENA;
+  wire [BITS-1:0] TWENA;
+  wire [WORDSWD-1:0] TAA;
+  wire [BITS-1:0] TDA;
+  wire  TENB;
+  wire  TCENB;
+  wire [BITS-1:0] TWENB;
+  wire [WORDSWD-1:0] TAB;
+  wire [BITS-1:0] TDB;
+  wire [1:0] SIA;
+  wire  SEA;
+  wire  DFTRAMBYP;
+  wire [1:0] SIB;
+  wire  SEB;
+  wire RET1N;
+  wire  COLLDISN;
+assign TENA = 1'b1;
+assign TCENA = 1'b1;
+assign TWENA = {BITS{1'b1}};
+assign TAA = {WORDSWD{1'b0}};
+assign TDA = {BITS{1'b0}};
+assign TENB = 1'b1;
+assign TCENB = 1'b1;
+assign TWENB = {BITS{1'b1}};
+assign TAB = {WORDSWD{1'b0}};
+assign TDB = {BITS{1'b0}};
+assign SIA = 2'b0;
+assign SEA = 1'b0;
+assign DFTRAMBYP = 1'b0;
+assign SIB = 2'b0;
+assign SEB = 1'b0;
+assign RET1N = 1'b1;
+assign COLLDISN = 1'b1;
 
-wire gwen;
-assign gwen = ~i_wib_bramctl_we;
-
-wire ret1n;
-assign ret1n = 1'b1;
 //---------------------------------------------------
 //-------------------------------------------------------
 
-rfsp_wrapper
+sramdp_wrapper
 #(WORDSWD, BITS)
 wib_ram
 (
-.Q(ram_out), 
-.CLK(i_clk), 
-.CEN(cen), 
-.WEN(wen[BITS-1:0]), 
-.A(addr), 
-.D(wdata), 
-.EMA(ema), 
-.EMAW(emaw), 
-.GWEN(gwen), 
-.RET1N(ret1n)
+.CENYA(CENYA), 
+.WENYA(WENYA), 
+.AYA(AYA), 
+.CENYB(CENYB), 
+.WENYB(WENYB), 
+.AYB(AYB), 
+.SOA(SOA), 
+.SOB(SOB),
+.TENA(TENA),
+.TCENA(TCENA), 
+.TWENA(TWENA), 
+.TAA(TAA), 
+.TDA(TDA), 
+.TENB(TENB), 
+.TCENB(TCENB), 
+.TWENB(TWENB), 
+.TAB(TAB), 
+.TDB(TDB), 
+.SIA(SIA), 
+.SEA(SEA), 
+.DFTRAMBYP(DFTRAMBYP), 
+.SIB(SIB), 
+.SEB(SEB), 
+.RET1N(RET1N), 
+.COLLDISN(COLLDISN), 
+.QA(ram_outa), 
+.CLKA(i_clk), 
+.CENA(cena), 
+.WENA(wen[BITS-1:0]), 
+.GWENA(gwena), 
+.AA(i_wib_bramctl_addr), 
+.DA(i_wib_bramctl_wdata[BITS-1:0]), 
+.QB(ram_outb), 
+.CLKB(i_clk), 
+.CENB(cenb), 
+.WENB({BITS{1'b1}}), 
+.GWENB(GWENB), 
+.AB(i_wib_raddr), 
+.DB({BITS{1'b0}}), 
+.EMAA(EMA), 
+.EMAWA(EMAW), 
+.EMAB(EMA), 
+.EMAWB(EMAW)
 );
 `endif //`ifdef FPGA
   

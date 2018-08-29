@@ -24,11 +24,12 @@ CM_SIM = -cm line+tgl+cond+fsm
 FPGA_SIM = 
 DEBUG_SLV = 
 
+#+define+XDMA_AXI_DEBUG_SLAVE 
+
 DEFINE = \
 +define+${FPGA_SIM} \
 +define+${DEBUG_SLV} \
 +define+INITIALIZE_MEMORY \
-+define+XDMA_AXI_DEBUG_SLAVE \
 +define+UVM_PACKER_MAX_BYTES=1500000 \
 +define+UVM_DISABLE_AUTO_ITEM_RECORDING \
 +define+SVT_UVM_TECHNOLOGY \
@@ -40,10 +41,11 @@ DEFINE = \
 all:com sim
 
 
+
 #.PHONY:com
 com:
 	@if [ ! -d $(TC) ]; then mkdir $(TC); fi 
-	vcs +plusarg_save -debug_pp -notice  -M -lca -full64 -sverilog +v2k -debug_all  -timescale=1ns/1ps -ntb_opts uvm $(DEFINE)  $(INC_DIR) -file ../filelist/npu.lst ../testbench/tb_top.sv  -f ../filelist/tb.lst -f ../filelist/tc.lst  -l ./$(TC)/compile.log -P ${VERDI_HOME}/share/PLI/VCS/LINUXAMD64/novas.tab ${VERDI_HOME}/share/PLI/VCS/LINUXAMD64/pli.a +vcs+lic+wait  +nospecify +notiming_check 
+	vcs +plusarg_save -debug_pp -notice  -M -lca -full64 -sverilog +v2k -debug_all  -timescale=1ns/1ps -ntb_opts uvm $(DEFINE)  $(INC_DIR) -file ../filelist/npu.lst ../testbench/tb_top.sv  -f ../filelist/tb.lst -f ../filelist/tc.lst -l ./$(TC)/compile.log -P ${VERDI_HOME}/share/PLI/VCS/LINUXAMD64/novas.tab ${VERDI_HOME}/share/PLI/VCS/LINUXAMD64/pli.a +vcs+lic+wait  +nospecify +notiming_check 
 	@cp ../filelist/rtl.lst filelist.f
 	@echo "../testbench/tb_top.sv">>filelist.f
 

@@ -53,7 +53,7 @@ class npu_axi_mst_seq extends svt_axi_master_base_sequence;
 		//-buffer_addr.push_back(32'h1200_0000);
 		//-buffer_addr.push_back(32'h1400_0000);
 		buffer_addr.push_back(32'h0170_0034); buffer_data.push_back(32'h0000_0000);
-		buffer_addr.push_back(32'h0170_0038); buffer_data.push_back(32'd675);
+		buffer_addr.push_back(32'h0170_003c); buffer_data.push_back(32'd675);
 		buffer_addr.push_back(32'h0170_0000); buffer_data.push_back(32'h0000_0004);
 	    //@(posedge tb_top.DUT.U_DMA.U_xDMA_CFG.init_inst_finish);
 		//buffer_addr.push_back(32'h0170_0000); buffer_data.push_back(32'h0000_0001);

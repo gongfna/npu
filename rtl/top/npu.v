@@ -82,17 +82,6 @@ module npu
   parameter NM_BIASB=DW_BIASB/DWIDTH 
 )
 (
-`ifndef XDMA_AXI_DEBUG_SLAVE
-//- apb
-  input pclk, 
-  input preset_n, 
-  input [7:0] paddr, 
-  input [31:0] pwdata, 
-  input pwrite, 
-  input psel, 
-  input penable, 
-  output [31:0] prdata, 
-`endif
 //- AXI MASTER
   input mstr_aclk, 
   input mstr_aresetn, 
@@ -140,7 +129,6 @@ module npu
   input                        mstr_rlast,
   input  [2-1:0]        mstr_rresp,
   output                       mstr_rready, 
-`ifdef XDMA_AXI_DEBUG_SLAVE
 //- AXI SLAVE
   // Write Address Channel from Master1
   input                       slv_awvalid, 
@@ -195,14 +183,12 @@ module npu
   input                       slv_rready, 
 
   input remap_n, 
-`endif //`ifdef XDMA_AXI_DEBUG_SLAVE
   //
   input xclk,
   input xrst_n
 
 
 );
-`ifdef XDMA_AXI_DEBUG_SLAVE
   // APB
   wire [31:0] paddr;
   wire [31:0] pwdata;
@@ -210,7 +196,6 @@ module npu
   wire psel;
   wire penable;
   wire [31:0] prdata;
-`endif
   // IOB0 
   wire [DW_IOB-1:0] iob0_wdata; 
   wire [DW_IOB/8-1:0] iob0_wstrb; 
@@ -339,13 +324,14 @@ module npu
   wire [7:0] i_line_size; 
   wire [1:0] i_stride;
   wire [1:0] i_pad_num; 
+  wire [1:0] i_single_pad; 
+  wire [1:0] i_double_pad; 
 // System IF
   wire npu_start; 
   wire npu_stop; 
   wire o_interrupt; 
   wire sys_reset_n; 
   wire axi_wr_buf_en;
-`ifdef XDMA_AXI_DEBUG_SLAVE
 `GENE_WIRE_DCLA(gs1)
 `GENE_WIRE_DCLA(gs2)
 `GENE_WIRE_DCLA(gs3)
@@ -353,7 +339,55 @@ module npu
 `GENE_WIRE_DCLA(gs5)
 `GENE_WIRE_DCLA(gs6)
 `GENE_WIRE_DCLA(gs7)
-`endif
+
+
+//- GM
+  // AXI write request
+  wire [4-1:0]                         awid;
+  wire                                      awvalid;
+  wire [32-1:0]                         awaddr;
+  wire [8-1:0]                         awlen;
+  wire [2:0]                                awsize;
+  wire [1:0]                                awburst;
+  wire [1:0]                                awlock;
+  wire [3:0]                                awcache;
+  wire [2:0]                                awprot;
+  wire                                      awready;
+
+  // AXI write data
+  wire [4-1:0]                         wid;
+  wire                                      wvalid;
+  wire                                      wlast;
+  wire [DWIDTH-1:0]                         wdata;
+  wire [32-1:0]                         wstrb;
+  wire                                      wready;
+
+  // AXI write response
+  wire [4-1:0]                          bid;
+  wire                                       bvalid;
+  wire [1:0]                                 bresp;
+  wire                                       bready;  
+  
+  // AXI read request
+  wire [4-1:0]                         arid;
+  wire                                      arvalid;
+  wire [32-1:0]                         araddr;
+  wire [8-1:0]                         arlen;
+  wire [2:0]                                arsize;
+  wire [1:0]                                arburst;
+  wire [1:0]                                arlock;
+  wire [3:0]                                arcache;
+  wire [2:0]                                arprot;  
+  wire                                      arready;
+
+  // AXI read response & read data
+  wire [4-1:0]                          rid;
+  wire                                       rvalid;
+  wire                                       rlast;
+  wire [DWIDTH-1:0]                          rdata;
+  wire [1:0]                                 rresp;
+  wire                                       rready;
+
 //--------------------
 //-assign i_b_stream = 1'b0;
 //-`ifdef DEBUG
@@ -363,7 +397,11 @@ module npu
 //-`endif
 //-assign i_line_size = 8'd19;
 //-assign i_pad_num = 2'd2;
+assign i_single_pad = 2'd0;
+assign i_double_pad = 2'd0;
 assign i_inst_exception=0; 
+wire i_reorg_type;
+assign i_reorg_type=0;
 //-`ifdef DEBUG_SLV
 //-assign i_internal_stop=1; 
 //-`else
@@ -400,7 +438,6 @@ npu_core U_NPU_CORE
      .i_dma_finish          (o_dma_finish         ), 
      .o_npu_idle            (i_npu_idle           ),        
      .o_internal_stop       (i_internal_stop      ),
-`ifdef XDMA_AXI_DEBUG_SLAVE
      .i_iob_0_bramctl_en    (iob0_cs_npe), // Chip Enable Signal (optional)
      .o_iob_0_bramctl_rdata (iob0_rdata_npe), // Data Out Bus (optional)
      .i_iob_0_bramctl_wdata (iob0_wdata_npe), // Data In Bus (optional)
@@ -443,50 +480,6 @@ npu_core U_NPU_CORE
      .i_inst_bramctl_we     (instb_write_npe), // Byte Enables (optional)
      .i_inst_bramctl_be     (instb_wstrb_npe), // Byte Enables (optional)
      .i_inst_bramctl_addr   (instb_addr_npe), // Address Signal (required)                
-`else
-     .i_iob_0_bramctl_en    (iob0_cs), // Chip Enable Signal (optional)
-     .o_iob_0_bramctl_rdata (iob0_rdata), // Data Out Bus (optional)
-     .i_iob_0_bramctl_wdata (iob0_wdata), // Data In Bus (optional)
-     .i_iob_0_bramctl_we    (iob0_write), // Byte Enables (optional)
-     .i_iob_0_bramctl_be    (iob0_wstrb), // Byte Enables (optional)
-     .i_iob_0_bramctl_addr  (iob0_addr), // Address Signal (required)
-     .i_iob_1_bramctl_en    (iob1_cs), // Chip Enable Signal (optional)
-     .o_iob_1_bramctl_rdata (iob1_rdata), // Data Out Bus (optional)
-     .i_iob_1_bramctl_wdata (iob1_wdata), // Data In Bus (optional)
-     .i_iob_1_bramctl_we    (iob1_write), // Byte Enables (optional)
-     .i_iob_1_bramctl_be    (iob1_wstrb), // Byte Enables (optional)
-     .i_iob_1_bramctl_addr  (iob1_addr), // Address Signal (required)
-     .i_wb_bramctl_en       (wb_cs), // Chip Enable Signal (optional)
-     .o_wb_bramctl_rdata    (wb_rdata[415:0]), // Data Out Bus (optional)
-     .i_wb_bramctl_wdata    (wb_wdata[415:0]), // Data In Bus (optional)
-     .i_wb_bramctl_we       (wb_write), // Byte Enables (optional)
-     .i_wb_bramctl_be       (wb_wstrb), // Byte Enables (optional)
-     .i_wb_bramctl_addr     (wb_addr), // Address Signal (required)                                  
-     .i_wib_bramctl_en      (wib_cs), // Chip Enable Signal (optional)
-     .o_wib_bramctl_rdata   (wib_rdata), // Data Out Bus (optional)
-     .i_wib_bramctl_wdata   (wib_wdata), // Data In Bus (optional)
-     .i_wib_bramctl_we      (wib_write), // Byte Enables (optional)
-     .i_wib_bramctl_be      (wib_wstrb), // Byte Enables (optional)
-     .i_wib_bramctl_addr    (wib_addr), // Address Signal (required)                
-     .i_lstmb_bramctl_en      (lstmb_cs), // Chip Enable Signal (optional)
-     .o_lstmb_bramctl_rdata   (lstmb_rdata), // Data Out Bus (optional)
-     .i_lstmb_bramctl_wdata   (lstmb_wdata), // Data In Bus (optional)
-     .i_lstmb_bramctl_we      (lstmb_write), // Byte Enables (optional)
-     .i_lstmb_bramctl_be      (lstmb_wstrb), // Byte Enables (optional)
-     .i_lstmb_bramctl_addr    (lstmb_addr), // Address Signal (required)                
-     .i_bias_bramctl_en     (biasb_cs), // Chip Enable Signal (optional)
-     .o_bias_bramctl_rdata  (biasb_rdata), // Data Out Bus (optional)
-     .i_bias_bramctl_wdata  (biasb_wdata), // Data In Bus (optional)
-     .i_bias_bramctl_we     (biasb_write), // Byte Enables (optional)
-     .i_bias_bramctl_be     (biasb_wstrb), // Byte Enables (optional)
-     .i_bias_bramctl_addr   (biasb_addr), // Address Signal (required)                
-     .i_inst_bramctl_en     (instb_cs), // Chip Enable Signal (optional)
-     .o_inst_bramctl_rdata  (instb_rdata), // Data Out Bus (optional)
-     .i_inst_bramctl_wdata  (instb_wdata), // Data In Bus (optional)
-     .i_inst_bramctl_we     (instb_write), // Byte Enables (optional)
-     .i_inst_bramctl_be     (instb_wstrb), // Byte Enables (optional)
-     .i_inst_bramctl_addr   (instb_addr), // Address Signal (required)                
-`endif// XDMA_AXI_DEBUG_SLAVE
      .i_iob_0_bramctl_s_clk (i_clk), // Clock Signal (required)
      .i_iob_0_bramctl_s_rst (i_rst_n), // Reset Signal (required)
      .i_iob_1_bramctl_s_clk (i_clk), // Clock Signal (required)
@@ -563,13 +556,8 @@ dma U_DMA
   .biasb_cs(biasb_cs), 
 //- xDMA_CFG
   //- apb
-`ifdef XDMA_AXI_DEBUG_SLAVE
   .pclk(xclk), 
   .preset_n(xrst_n), 
-`else
-  .pclk(pclk), 
-  .preset_n(preset_n), 
-`endif
   .paddr(paddr[7:0]), 
   .pwdata(pwdata), 
   .pwrite(pwrite), 
@@ -586,56 +574,59 @@ dma U_DMA
   .i_ex_dma(i_ex_dma), 
   .i_line_size(i_line_size), 
   .i_stride(i_stride), 
-  .i_pad_num(i_pad_num), 
+  //.i_pad_num(i_pad_num), 
+  .i_single_pad(i_single_pad), 
+  .i_double_pad(i_double_pad), 
+  .i_reorg_type(i_reorg_type), 
   .i_npu_idle(i_npu_idle), 
   .i_inst_exception(i_inst_exception), 
   .i_internal_stop(i_internal_stop), 
   .inst_work_state(inst_work_state), 
   .npu_work_state(npu_work_state), 
 //- AXI MASTER
-.aclk_m(mstr_aclk)
-,.aresetn_m(mstr_aresetn)
+.aclk_m(xclk)
+,.aresetn_m(xrst_n)
 ,// MP Write Address Channel 1
- .awvalid_m(mstr_awvalid)
-,.awaddr_m(mstr_awaddr)
-,.awid_m(mstr_awid)
-,.awlen_m(mstr_awlen)
-,.awsize_m(mstr_awsize)
-,.awburst_m(mstr_awburst)
-,.awlock_m(mstr_awlock)
-,.awcache_m(mstr_awcache)
-,.awprot_m(mstr_awprot)
-,.awready_m(mstr_awready)
+ .awvalid_m(awvalid)
+,.awaddr_m(awaddr)
+,.awid_m(awid)
+,.awlen_m(awlen)
+,.awsize_m(awsize)
+,.awburst_m(awburst)
+,.awlock_m(awlock)
+,.awcache_m(awcache)
+,.awprot_m(awprot)
+,.awready_m(awready)
 ,// MP Write Data Channel 1
- .wvalid_m(mstr_wvalid)
-,.wid_m(mstr_wid)
-,.wdata_m(mstr_wdata)
-,.wstrb_m(mstr_wstrb)
-,.wlast_m(mstr_wlast)
-,.wready_m(mstr_wready)
+ .wvalid_m(wvalid)
+,.wid_m(wid)
+,.wdata_m(wdata)
+,.wstrb_m(wstrb)
+,.wlast_m(wlast)
+,.wready_m(wready)
 ,// MP Write Response Channel 1
- .bvalid_m(mstr_bvalid)
-,.bid_m(mstr_bid)
-,.bresp_m(mstr_bresp)
-,.bready_m(mstr_bready)
+ .bvalid_m(bvalid)
+,.bid_m(bid)
+,.bresp_m(bresp)
+,.bready_m(bready)
 ,// MP Read Address Channel
- .arvalid_m(mstr_arvalid)
-,.arid_m(mstr_arid)
-,.araddr_m(mstr_araddr)
-,.arlen_m(mstr_arlen)
-,.arsize_m(mstr_arsize)
-,.arburst_m(mstr_arburst)
-,.arlock_m(mstr_arlock)
-,.arcache_m(mstr_arcache)
-,.arprot_m(mstr_arprot)
-,.arready_m(mstr_arready)
+ .arvalid_m(arvalid)
+,.arid_m(arid)
+,.araddr_m(araddr)
+,.arlen_m(arlen)
+,.arsize_m(arsize)
+,.arburst_m(arburst)
+,.arlock_m(arlock)
+,.arcache_m(arcache)
+,.arprot_m(arprot)
+,.arready_m(arready)
 ,// MP Read Data Channel
- .rvalid_m(mstr_rvalid)
-,.rid_m(mstr_rid)
-,.rdata_m(mstr_rdata)
-,.rresp_m(mstr_rresp)
-,.rlast_m(mstr_rlast)
-,.rready_m(mstr_rready), 
+ .rvalid_m(rvalid)
+,.rid_m(rid)
+,.rdata_m(rdata)
+,.rresp_m(rresp)
+,.rlast_m(rlast)
+,.rready_m(rready), 
 // System IF
   .npu_start(npu_start), 
   .npu_stop(npu_stop), 
@@ -646,7 +637,100 @@ dma U_DMA
   .xrst_n(xrst_n) 
 );
 
-`ifdef XDMA_AXI_DEBUG_SLAVE
+dma_m_DW_axi_x2x U_DMA_AXI_M
+(
+  // MASTER PORT I/O
+  .aclk_m(xclk)
+                   ,.aresetn_m(xrst_n)
+                   ,// MP Write Address Channel 
+                   .awvalid_m(awvalid)
+                   ,.awaddr_m(awaddr)
+                   ,.awid_m(awid)
+                   ,.awlen_m(awlen)
+                   ,.awsize_m(awsize)
+                   ,.awburst_m(awburst)
+                   ,.awlock_m(awlock)
+                   ,.awcache_m(awcache)
+                   ,.awprot_m(awprot)
+                   ,.awready_m(awready)
+                   ,// MP Write Data Channel 
+                   .wvalid_m(wvalid)
+                   ,.wid_m(wid)
+                   ,.wdata_m(wdata)
+                   ,.wstrb_m(wstrb)
+                   ,.wlast_m(wlast)
+                   ,.wready_m(wready)
+                   ,// MP Write Response Channel
+                   .bvalid_m(bvalid)
+                   ,.bid_m(bid)
+                   ,.bresp_m(bresp)
+                   ,.bready_m(bready)
+                   ,// MP Read Address Channel
+                   .arvalid_m(arvalid)
+                   ,.arid_m(arid)
+                   ,.araddr_m(araddr)
+                   ,.arlen_m(arlen)
+                   ,.arsize_m(arsize)
+                   ,.arburst_m(arburst)
+                   ,.arlock_m(arlock)
+                   ,.arcache_m(arcache)
+                   ,.arprot_m(arprot)
+                   ,.arready_m(arready)
+                   ,// MP Read Data Channel
+                   .rvalid_m(rvalid)
+                   ,.rid_m(rid)
+                   ,.rdata_m(rdata)
+                   ,.rresp_m(rresp)
+                   ,.rlast_m(rlast)
+                   ,.rready_m(rready)
+                   ,// SLAVE PORT I/O
+                   .aclk_s(mstr_aclk)
+                   ,.aresetn_s(mstr_aresetn)
+                   ,// SP Write Address Channel 1
+                   .awvalid_s1(mstr_awvalid)
+                   ,.awaddr_s1(mstr_awaddr)
+                   ,.awid_s1(mstr_awid)
+                   ,.awlen_s1(mstr_awlen)
+                   ,.awsize_s1(mstr_awsize)
+                   ,.awburst_s1(mstr_awburst)
+                   ,.awlock_s1(mstr_awlock)
+                   ,.awcache_s1(mstr_awcache)
+                   ,.awprot_s1(mstr_awprot)
+                   ,.awready_s1(mstr_awready)
+                   ,// SP Write Data Channel 1
+                   .wvalid_s1(mstr_wvalid)
+                   ,.wid_s1(mstr_wid)
+                   ,.wdata_s1(mstr_wdata)
+                   ,.wstrb_s1(mstr_wstrb)
+                   ,.wlast_s1(mstr_wlast)
+                   ,.wready_s1(mstr_wready)
+                   ,// SP Write Response Channel 1
+                   .bvalid_s1(mstr_bvalid)
+                   ,.bid_s1(mstr_bid)
+                   ,.bresp_s1(mstr_bresp)
+                   ,.bready_s1(mstr_bready)
+                   ,// SP Read Address Channel
+                   .arvalid_s(mstr_arvalid)
+                   ,.arid_s(mstr_arid)
+                   ,.araddr_s(mstr_araddr)
+                   ,.arlen_s(mstr_arlen)
+                   ,.arsize_s(mstr_arsize)
+                   ,.arburst_s(mstr_arburst)
+                   ,.arlock_s(mstr_arlock)
+                   ,.arcache_s(mstr_arcache)
+                   ,.arprot_s(mstr_arprot)
+                   ,.arready_s(mstr_arready)
+                   ,// SP Read Data Channel
+                   .rvalid_s(mstr_rvalid)
+                   ,.rid_s(mstr_rid)
+                   ,.rdata_s(mstr_rdata)
+                   ,.rresp_s(mstr_rresp)
+                   ,.rlast_s(mstr_rlast)
+                   ,.rready_s(mstr_rready)
+                   );
+
+
+
 wire [95:0] wb_rdata_npe_high;
 assign wb_rdata_npe_high = 96'h0;
 
@@ -838,6 +922,5 @@ U_gs_mux(
                `GENE_CONN_DCLA(gs7)
 );
 
-`endif //`ifdef XDMA_AXI_DEBUG_SLAVE
 
 endmodule

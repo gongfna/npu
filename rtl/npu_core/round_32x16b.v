@@ -31,6 +31,7 @@ module round_32x16b(
     input [511:0] i_bias_dat,
     input i_shift_en,
     input [1:0] i_round_mode,    // 0 for trunc, 1 for nearst
+    input [31:0] bypass_round,
     output [255:0] o_round_dat
 );
 
@@ -60,6 +61,7 @@ module round_32x16b(
                 .shift_num(shift_num),
                 .i_shift_en(i_shift_en),
                 .i_round_mode(i_round_mode),
+                .bypass_round(bypass_round[i]),
                 .dat_i(bias_16b_dat[i]),
                 .dat_o(round_8b_dat[i])
             );

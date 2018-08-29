@@ -52,8 +52,9 @@ module IAGU_CONV_GADDR (
     reg [2:0] r_AdderCnt;
     reg [11:0] r_InputCurColAdder;
 
-    reg r_AGUStart;
+   // reg r_AGUStart;
     reg r_AGU_Endf;
+/*
     always@(posedge i_clk or negedge i_rst_n) begin
         if (!i_rst_n)
             r_AGUStart <= 1'd0;
@@ -62,7 +63,7 @@ module IAGU_CONV_GADDR (
         else 
             r_AGUStart <= 1'd0;
     end
-
+*/
     reg [2:0] r_PartLen;
     wire c_PadOneClk;
     assign c_PadOneClk = i_PartFlag[0] && (i_LastColNum == 3'd1);

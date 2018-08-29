@@ -105,9 +105,9 @@ wd``_DW_axi_x2p U_x2p_``INST (/*AUTOARG*/ \
                  .rresp(rresp_``x2p), \
                  .rlast(rlast_``x2p), \
                  .rvalid(rvalid_``x2p), \
-                 .aclk(aclk), \
+                 .aclk(xclk), \
                  .pclk(xclk), \
-                 .aresetn(aresetn), \
+                 .aresetn(xrst_n), \
                  .awid(awid_``x2p), \
                  .awaddr(awaddr_``x2p), \
                  .awlen(awlen_``x2p), \

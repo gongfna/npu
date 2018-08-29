@@ -36,6 +36,9 @@ parameter PDMA=5'b10010;
 parameter JUMP=5'b11100;
 parameter SOFTMAX = 5'b00110;
 parameter STOP = 5'b11111;
+parameter DOT = 5'b10011;
+parameter DOTACC = 5'b10110;
+parameter ACTFUN = 5'b10111;
 
 
 
@@ -63,29 +66,29 @@ always @(posedge i_clk or negedge i_rst_n)
 begin
 	if(!i_rst_n)
 		r_sync_noblock_dma <= 1'b0;
-	else if(i_dma_finish)
+	
+	else  if(i_dma_finish)
 		r_sync_noblock_dma <= 1'b0;
 	else if(i_inst_valid && be_noblock)	
 		r_sync_noblock_dma <= 1'b1;
 	else r_sync_noblock_dma <= r_sync_noblock_dma;
-    
-	
+   
 	
 end
 
 
-assign c_inst_exec = (i_opcode == S_N2IOB) | (i_opcode == PDMA) | (i_opcode == SOFTMAX);
+assign c_inst_exec = (i_opcode == S_N2IOB) | (i_opcode == PDMA)| (i_opcode == SOFTMAX) | (i_opcode == DOT)| (i_opcode == DOTACC) | (i_opcode == ACTFUN);
 assign o_internal_stop = (i_opcode == STOP);
 assign c_wait_last_noblock_dma = i_wait_last_noblock_dma  | (i_opcode == PDMA);
 assign c_jump_pc_en = (i_opcode == JUMP);
 assign  o_pc = r_next_pc;
-assign c_calculate_enable = (r_WorkState == ST_EXECUTE_INST) && ((i_opcode == S_N2IOB) | (i_opcode == SOFTMAX));
+assign c_calculate_enable = (r_WorkState == ST_EXECUTE_INST) && ((i_opcode == S_N2IOB) | (i_opcode == SOFTMAX) | (i_opcode == DOT)| (i_opcode == DOTACC) | (i_opcode == ACTFUN));
 assign c_ex_dma = ((r_WorkState == ST_EXECUTE_INST) && (i_opcode == PDMA));
 assign o_npu_idle = (r_WorkState == ST_NPU_IDLE);
 //assign c_fetch_en = (r_WorkState == ST_FETCH_INST);
 assign o_inst_buffer_en = r_fetch_en;
 
-always @(posedge i_clk or  negedge i_rst_n)
+always @(posedge i_clk or negedge i_rst_n)
 begin
 	if(!i_rst_n)begin
 		r_next_pc <= 12'b0;
@@ -99,7 +102,7 @@ begin
 	else r_next_pc <= r_next_pc;
 end
 
-always @(posedge i_clk or negedge i_rst_n)
+always @(posedge i_clk or  negedge i_rst_n)
 begin
 	if(!i_rst_n)
 		r_fetch_en <= 1'b0;
@@ -109,7 +112,7 @@ begin
 		r_fetch_en <= 1'b0;
 end
 
-always @(posedge i_clk or negedge i_rst_n)
+always @(posedge i_clk or  negedge i_rst_n)
 begin
 	if(!i_rst_n) begin
 		r_ex_dma <= 1'b0;

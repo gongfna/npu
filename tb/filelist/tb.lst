@@ -4,3 +4,6 @@
 ../testbench/npu_sys_mon.sv
 ../testbench/npu_sys_scb.sv
 ../testbench/npu_sys_env.sv
+../testbench/npu_sys_mon_yolo.sv
+../testbench/npu_sys_scb_yolo.sv
+../testbench/npu_sys_env_yolo.sv

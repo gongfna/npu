@@ -22,7 +22,7 @@
 
 module io_buffer#(
     parameter INIT_FILE = "", // Specify name/location of RAM initialization file if using one (leave blank if not)
-	parameter REG_OUT=1'b1
+	parameter REG_OUT=1'b0
     )(
     input i_clk, 
     input i_rst_n, 
@@ -44,13 +44,16 @@ module io_buffer#(
     input  [11:0]   i_iob_waddr, 
     input           i_iob_wr_en, 
     input  [255:0]  i_iob_wdat, 
-    input           i_rwsel, //'1' r;'0'w
+    input           i_wsel, //'1' r;'0'w
     output [255:0]  o_mdata, 
     output          o_mdata_vld 
 ); 
 localparam WORDSWD=12;
 localparam BITS=256;
-wire [BITS-1:0] ram_out;
+localparam RAM_AWD=10;
+localparam RAM_BITS=64;
+wire [BITS-1:0] ram_outa;
+wire [BITS-1:0] ram_outb;
 	wire w_iob_ena;
     wire w_iob_wea;
     wire [31:0] w_iob_be;
@@ -67,7 +70,7 @@ wire [BITS-1:0] ram_out;
 
 
 	assign w_iob_ena = i_iob_ext_en ? i_iob_bramctl_en : i_iob_wr_en;
-    assign w_iob_wea  = i_iob_ext_en ? i_iob_bramctl_we : ~i_rwsel;
+    assign w_iob_wea  = i_iob_ext_en ? i_iob_bramctl_we : ~i_wsel;
 	assign w_iob_be = i_iob_ext_en ? i_iob_bramctl_be : 32'hffff_ffff;
     assign w_iob_waddr = i_iob_ext_en ? i_iob_bramctl_addr : i_iob_waddr;
     assign w_iob_wdata = i_iob_ext_en ? i_iob_bramctl_wdata : i_iob_wdat;
@@ -76,34 +79,29 @@ wire [BITS-1:0] ram_out;
     assign w_iob_raddr = i_iob_ext_en ? i_iob_bramctl_addr : i_iob_raddr;
 
     // assign o_mdata = r_mdata_vld ? (r_iob_pad_en ? 256'b0 : w_iob_rdata) : 256'b0;
-    //assign o_mdata = r_mdata_sel ? ram_out: 256'b0;
     assign o_mdata_vld = r_mdata_vld;
 
-    //assign o_iob_bramctl_rdata=ram_out;
 
 generate 
 if(REG_OUT==1'b1) begin 
-reg [BITS-1:0] ram_out_r;
-assign o_mdata = r_mdata_sel ? ram_out_r: 256'b0;
-assign o_iob_bramctl_rdata=ram_out_r[BITS-1:0];
+reg [BITS-1:0] ram_outa_r;
+reg [BITS-1:0] ram_outb_r;
+assign o_mdata = r_mdata_sel ? ram_outb_r: 256'b0;
+assign o_iob_bramctl_rdata=ram_outa_r[BITS-1:0];
 
 always@(posedge i_clk or negedge i_rst_n)
 	if(~i_rst_n)begin
-		ram_out_r <= 'h0;
+		ram_outa_r <= 'h0;
+		ram_outb_r <= 'h0;
 	end
 	else begin
-		ram_out_r <= ram_out;
-		//-if(w_iob_enb) begin
-		//-	ram_out_r <= ram_out;
-		//-end
-		//-else begin
-		//-	ram_out_r <= 'h0;
-		//-end
+		ram_outa_r <= ram_outa;
+		ram_outb_r <= ram_outb;
 	end
 end
 else begin //REG_OUT==1'b0
-assign o_mdata = r_mdata_sel ? ram_out: 256'b0;
-assign o_iob_bramctl_rdata=ram_out[BITS-1:0];
+assign o_mdata = r_mdata_sel ? ram_outb: 256'b0;
+assign o_iob_bramctl_rdata = ram_outa[BITS-1:0];
 end
 endgenerate
 
@@ -113,23 +111,19 @@ endgenerate
     always@(posedge i_clk or negedge i_rst_n) begin
         if(i_rst_n==0) begin
             r_mdata_vld <=1'b0;
-        end else if(i_rwsel) begin
-            if(i_iob_pad_en)begin
+        end else if(i_iob_pad_en)begin
                 r_mdata_vld <= 1'd1;
             end else if(i_iob_rd_en) begin
                 r_mdata_vld <= 1'd1;
             end else begin
                 r_mdata_vld <= 1'd0;
-            end
-        end else begin
-            r_mdata_vld <= 1'd0;
-        end        
+            end  
     end    
 
     always @(posedge i_clk or negedge i_rst_n) begin
         if (i_rst_n==0) begin
             r_mdata_sel <= 0;            
-        end else if (i_rwsel && i_iob_rd_en &&(i_iob_pad_en==0)) begin
+        end else if ( i_iob_rd_en &&(i_iob_pad_en==0)) begin
             r_mdata_sel <= 1;            
         end else begin
             r_mdata_sel <= 0;
@@ -171,101 +165,392 @@ iob_ram
   .clkb(i_clk), 
   .enb(w_iob_enb), 
   .addrb(w_iob_raddr), 
-  .doutb(ram_out)
+  .doutb(ram_outb)
 );
 `else
-//assign o_iob_bramctl_rdata = ram_out;
 
-wire cen;
-assign cen = ~(w_iob_ena| w_iob_enb);
+wire cena;
+wire cenb;
+assign cena = ~i_iob_bramctl_en;
+assign cenb = ~(i_iob_wr_en | i_iob_rd_en);
 
-generate 
 wire [BITS-1:0] wen;
+wire [BITS-1:0] wenb;
+generate 
 for(genvar i=0;i<BITS/8;i=i+1) begin
-assign wen[8*(i+1)-1:8*i] = {8{~(w_iob_be[i]&w_iob_wea)}};
+assign wen[8*(i+1)-1:8*i] = {8{~(i_iob_bramctl_be[i]&w_iob_wea)}};
+end
+endgenerate
+assign wenb = {BITS{i_wsel}};
+
+wire [WORDSWD-1:0] addra;
+wire [WORDSWD-1:0] addrb;
+assign addra = i_iob_bramctl_addr;
+assign addrb = ~i_wsel ? i_iob_waddr : i_iob_raddr;
+wire [BITS-1:0] wdataa;
+wire [BITS-1:0] wdatab;
+assign wdataa = i_iob_bramctl_wdata;
+assign wdatab = i_iob_wdat;
+
+
+wire gwena;
+assign gwena = ~i_iob_bramctl_we;
+wire GWENB;
+assign GWENB = i_wsel;
+//---------------------------------------------------
+//-------------------------------------------------------
+
+wire [2:0] EMA;
+assign EMA = 3'b010;
+
+wire [1:0] EMAW;
+assign EMAW = 2'b00;
+
+
+//- TestOut
+  wire  CENYA;
+  wire [RAM_BITS-1:0] WENYA;
+  wire [RAM_AWD-1:0] AYA;
+  wire  CENYB;
+  wire [RAM_BITS-1:0] WENYB;
+  wire [RAM_AWD-1:0] AYB;
+  wire [1:0] SOA;
+  wire [1:0] SOB;
+  wire  GWENYA;
+  wire  GWENYB;
+//- TestIn
+  wire  TENA;
+  wire  TCENA;
+  wire [RAM_BITS-1:0] TWENA;
+  wire [RAM_AWD-1:0] TAA;
+  wire [RAM_BITS-1:0] TDA;
+  wire  TENB;
+  wire  TCENB;
+  wire [RAM_BITS-1:0] TWENB;
+  wire [RAM_AWD-1:0] TAB;
+  wire [RAM_BITS-1:0] TDB;
+  wire [1:0] SIA;
+  wire  SEA;
+  wire  DFTRAMBYP;
+  wire [1:0] SIB;
+  wire  SEB;
+  wire RET1N;
+  wire  COLLDISN;
+assign TENA = 1'b1;
+assign TCENA = 1'b1;
+assign TWENA = {RAM_BITS{1'b1}};
+assign TAA = {RAM_AWD{1'b0}};
+assign TDA = {RAM_BITS{1'b0}};
+assign TENB = 1'b1;
+assign TCENB = 1'b1;
+assign TWENB = {RAM_BITS{1'b1}};
+assign TAB = {RAM_AWD{1'b0}};
+assign TDB = {RAM_BITS{1'b0}};
+assign SIA = 2'b0;
+assign SEA = 1'b0;
+assign DFTRAMBYP = 1'b0;
+assign SIB = 2'b0;
+assign SEB = 1'b0;
+assign RET1N = 1'b1;
+assign COLLDISN = 1'b1;
+//---------------------------------------------------
+//-------------------------------------------------------
+localparam MERGE_BITS=2**(WORDSWD-RAM_AWD);
+wire [MERGE_BITS-1:0] cena_merge;
+wire [MERGE_BITS-1:0] cenb_merge;
+wire [BITS-1:0] ram_out3a;
+wire [BITS-1:0] ram_out2a;
+wire [BITS-1:0] ram_out1a;
+wire [BITS-1:0] ram_out0a;
+wire [BITS-1:0] ram_out3b;
+wire [BITS-1:0] ram_out2b;
+wire [BITS-1:0] ram_out1b;
+wire [BITS-1:0] ram_out0b;
+generate 
+if((WORDSWD-RAM_AWD)==2) begin
+assign cena_merge[3] = ~( addra[WORDSWD-1] &  addra[WORDSWD-2] & ~cena);
+assign cena_merge[2] = ~( addra[WORDSWD-1] & ~addra[WORDSWD-2] & ~cena);
+assign cena_merge[1] = ~(~addra[WORDSWD-1] &  addra[WORDSWD-2] & ~cena);
+assign cena_merge[0] = ~(~addra[WORDSWD-1] & ~addra[WORDSWD-2] & ~cena);
+assign ram_outa = addra[WORDSWD-1] & addra[WORDSWD-2] ? ram_out3a :
+                 addra[WORDSWD-1] & ~addra[WORDSWD-2] ? ram_out2a :
+                 ~addra[WORDSWD-1] & addra[WORDSWD-2] ? ram_out1a :
+				                                        ram_out0a;
+assign cenb_merge[3] = ~( addrb[WORDSWD-1] &  addrb[WORDSWD-2] & ~cenb);
+assign cenb_merge[2] = ~( addrb[WORDSWD-1] & ~addrb[WORDSWD-2] & ~cenb);
+assign cenb_merge[1] = ~(~addrb[WORDSWD-1] &  addrb[WORDSWD-2] & ~cenb);
+assign cenb_merge[0] = ~(~addrb[WORDSWD-1] & ~addrb[WORDSWD-2] & ~cenb);
+assign ram_outb  = addrb[WORDSWD-1] &  addrb[WORDSWD-2] ? ram_out3b :
+                  addrb[WORDSWD-1] & ~addrb[WORDSWD-2] ? ram_out2b :
+                 ~addrb[WORDSWD-1] &  addrb[WORDSWD-2] ? ram_out1b :
+				                                         ram_out0b;
+end
+if((WORDSWD-RAM_AWD)==1) begin
+assign cena_merge[1] = ~( addra[WORDSWD-1] & ~cena);
+assign cena_merge[0] = ~(~addra[WORDSWD-1] & ~cena);
+assign ram_outa = addra[WORDSWD-1] ? ram_out1a :
+				                     ram_out0a;
+assign cenb_merge[1] = ~( addrb[WORDSWD-1] & ~cenb);
+assign cenb_merge[0] = ~(~addrb[WORDSWD-1] & ~cenb);
+assign ram_outb  = addrb[WORDSWD-1] ? ram_out1b :
+				                     ram_out0b;
+end
+if((WORDSWD-RAM_AWD)==0) begin
+assign cena_merge = cena;
+assign cenb_merge = cenb;
 end
 endgenerate
 
-wire [WORDSWD-1:0] addr;
-//assign addr = w_iob_enb? w_iob_raddr: w_iob_waddr;
-assign addr = w_iob_wea ? w_iob_waddr : w_iob_raddr;
-
-wire [BITS-1:0] wdata;
-assign wdata = w_iob_wdata;
-
-wire [2:0] ema;
-assign ema = 3'b010;
-
-wire [1:0] emaw;
-assign emaw = 2'b00;
-
-wire gwen;
-assign gwen = ~w_iob_wea;
-
-wire ret1n;
-assign ret1n = 1'b1;
-
-sramsp_wrapper
-#(WORDSWD, 128)
-iob_ram1
+generate
+for(genvar num=0;num<(BITS/RAM_BITS);num=num+1) begin
+if((WORDSWD-RAM_AWD)==2) begin
+sramdp_wrapper
+#(RAM_AWD, RAM_BITS)
+U_ram3
 (
-.CENY(), 
-.WENY(), 
-.AY(), 
-.GWENY(), 
-.Q(ram_out[128+127:128]), 
-.SO(), 
-.CLK(i_clk), 
-.CEN(cen), 
-.WEN(wen[128+127:128]), 
-.A(addr), 
-.D(wdata[128+127:128]), 
-.EMA(ema), 
-.EMAW(emaw),
-.TEN(1'b1), 
-.TCEN(1'b1), 
-.TWEN({128{1'b1}}), 
-.TA({WORDSWD{1'b0}}), 
-.TD({128{1'b0}}), 
-.GWEN(gwen), 
-.TGWEN(1'b1), 
-.RET1N(ret1n), 
-.SI(2'b0), 
-.SE(1'b0), 
-.DFTRAMBYP(1'b0)
-
+.CENYA(CENYA), 
+.WENYA(WENYA), 
+.AYA(AYA), 
+.CENYB(CENYB), 
+.WENYB(WENYB), 
+.AYB(AYB), 
+.SOA(SOA), 
+.SOB(SOB),
+.TENA(TENA),
+.TCENA(TCENA), 
+.TWENA(TWENA), 
+.TAA(TAA), 
+.TDA(TDA), 
+.TENB(TENB), 
+.TCENB(TCENB), 
+.TWENB(TWENB), 
+.TAB(TAB), 
+.TDB(TDB), 
+.SIA(SIA), 
+.SEA(SEA), 
+.DFTRAMBYP(DFTRAMBYP), 
+.SIB(SIB), 
+.SEB(SEB), 
+.RET1N(RET1N), 
+.COLLDISN(COLLDISN), 
+.QA(ram_out3a[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.CLKA(i_clk), 
+.CENA(cena_merge[3]), 
+.WENA(wen[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.GWENA(gwena), 
+.AA(addra[RAM_AWD-1:0]), 
+.DA(wdataa[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.QB(ram_out3b[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.CLKB(i_clk), 
+.CENB(cenb_merge[3]), 
+.WENB(wenb[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.GWENB(GWENB), 
+.AB(addrb[RAM_AWD-1:0]), 
+.DB({RAM_BITS{1'b0}}), 
+.EMAA(EMA), 
+.EMAWA(EMAW), 
+.EMAB(EMA), 
+.EMAWB(EMAW)
 );
-
-sramsp_wrapper
-#(WORDSWD, 128)
-iob_ram0
+sramdp_wrapper
+#(RAM_AWD, RAM_BITS)
+U_ram2
 (
-.CENY(), 
-.WENY(), 
-.AY(), 
-.GWENY(), 
-.Q(ram_out[127:0]), 
-.SO(), 
-.CLK(i_clk), 
-.CEN(cen), 
-.WEN(wen[127:0]), 
-.A(addr), 
-.D(wdata[127:0]), 
-.EMA(ema), 
-.EMAW(emaw),
-.TEN(1'b1), 
-.TCEN(1'b1), 
-.TWEN({128{1'b1}}), 
-.TA({WORDSWD{1'b0}}), 
-.TD({128{1'b0}}), 
-.GWEN(gwen), 
-.TGWEN(1'b1), 
-.RET1N(ret1n), 
-.SI(2'b0), 
-.SE(1'b0), 
-.DFTRAMBYP(1'b0)
-
+.CENYA(CENYA), 
+.WENYA(WENYA), 
+.AYA(AYA), 
+.CENYB(CENYB), 
+.WENYB(WENYB), 
+.AYB(AYB), 
+.SOA(SOA), 
+.SOB(SOB),
+.TENA(TENA),
+.TCENA(TCENA), 
+.TWENA(TWENA), 
+.TAA(TAA), 
+.TDA(TDA), 
+.TENB(TENB), 
+.TCENB(TCENB), 
+.TWENB(TWENB), 
+.TAB(TAB), 
+.TDB(TDB), 
+.SIA(SIA), 
+.SEA(SEA), 
+.DFTRAMBYP(DFTRAMBYP), 
+.SIB(SIB), 
+.SEB(SEB), 
+.RET1N(RET1N), 
+.COLLDISN(COLLDISN), 
+.QA(ram_out2a[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.CLKA(i_clk), 
+.CENA(cena_merge[2]), 
+.WENA(wen[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.GWENA(gwena), 
+.AA(addra[RAM_AWD-1:0]), 
+.DA(wdataa[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.QB(ram_out2b[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.CLKB(i_clk), 
+.CENB(cenb_merge[2]), 
+.WENB(wenb[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.GWENB(GWENB), 
+.AB(addrb[RAM_AWD-1:0]), 
+.DB({RAM_BITS{1'b0}}), 
+.EMAA(EMA), 
+.EMAWA(EMAW), 
+.EMAB(EMA), 
+.EMAWB(EMAW)
 );
+end
+if((WORDSWD-RAM_AWD)>=1) begin
+sramdp_wrapper
+#(RAM_AWD, RAM_BITS)
+U_ram1
+(
+.CENYA(CENYA), 
+.WENYA(WENYA), 
+.AYA(AYA), 
+.CENYB(CENYB), 
+.WENYB(WENYB), 
+.AYB(AYB), 
+.SOA(SOA), 
+.SOB(SOB),
+.TENA(TENA),
+.TCENA(TCENA), 
+.TWENA(TWENA), 
+.TAA(TAA), 
+.TDA(TDA), 
+.TENB(TENB), 
+.TCENB(TCENB), 
+.TWENB(TWENB), 
+.TAB(TAB), 
+.TDB(TDB), 
+.SIA(SIA), 
+.SEA(SEA), 
+.DFTRAMBYP(DFTRAMBYP), 
+.SIB(SIB), 
+.SEB(SEB), 
+.RET1N(RET1N), 
+.COLLDISN(COLLDISN), 
+.QA(ram_out1a[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.CLKA(i_clk), 
+.CENA(cena_merge[1]), 
+.WENA(wen[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.GWENA(gwena), 
+.AA(addra[RAM_AWD-1:0]), 
+.DA(wdataa[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.QB(ram_out1b[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.CLKB(i_clk), 
+.CENB(cenb_merge[1]), 
+.WENB(wenb[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.GWENB(GWENB), 
+.AB(addrb[RAM_AWD-1:0]), 
+.DB({RAM_BITS{1'b0}}), 
+.EMAA(EMA), 
+.EMAWA(EMAW), 
+.EMAB(EMA), 
+.EMAWB(EMAW)
+);
+sramdp_wrapper
+#(RAM_AWD, RAM_BITS)
+U_ram0
+(
+.CENYA(CENYA), 
+.WENYA(WENYA), 
+.AYA(AYA), 
+.CENYB(CENYB), 
+.WENYB(WENYB), 
+.AYB(AYB), 
+.SOA(SOA), 
+.SOB(SOB),
+.TENA(TENA),
+.TCENA(TCENA), 
+.TWENA(TWENA), 
+.TAA(TAA), 
+.TDA(TDA), 
+.TENB(TENB), 
+.TCENB(TCENB), 
+.TWENB(TWENB), 
+.TAB(TAB), 
+.TDB(TDB), 
+.SIA(SIA), 
+.SEA(SEA), 
+.DFTRAMBYP(DFTRAMBYP), 
+.SIB(SIB), 
+.SEB(SEB), 
+.RET1N(RET1N), 
+.COLLDISN(COLLDISN), 
+.QA(ram_out0a[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.CLKA(i_clk), 
+.CENA(cena_merge[0]), 
+.WENA(wen[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.GWENA(gwena), 
+.AA(addra[RAM_AWD-1:0]), 
+.DA(wdataa[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.QB(ram_out0b[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.CLKB(i_clk), 
+.CENB(cenb_merge[0]), 
+.WENB(wenb[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.GWENB(GWENB), 
+.AB(addrb[RAM_AWD-1:0]), 
+.DB({RAM_BITS{1'b0}}), 
+.EMAA(EMA), 
+.EMAWA(EMAW), 
+.EMAB(EMA), 
+.EMAWB(EMAW)
+);
+end
+if((WORDSWD-RAM_AWD)==0) begin
+sramdp_wrapper
+#(RAM_AWD, RAM_BITS)
+U_ram
+(
+.CENYA(CENYA), 
+.WENYA(WENYA), 
+.AYA(AYA), 
+.CENYB(CENYB), 
+.WENYB(WENYB), 
+.AYB(AYB), 
+.SOA(SOA), 
+.SOB(SOB),
+.TENA(TENA),
+.TCENA(TCENA), 
+.TWENA(TWENA), 
+.TAA(TAA), 
+.TDA(TDA), 
+.TENB(TENB), 
+.TCENB(TCENB), 
+.TWENB(TWENB), 
+.TAB(TAB), 
+.TDB(TDB), 
+.SIA(SIA), 
+.SEA(SEA), 
+.DFTRAMBYP(DFTRAMBYP), 
+.SIB(SIB), 
+.SEB(SEB), 
+.RET1N(RET1N), 
+.COLLDISN(COLLDISN), 
+.QA(ram_outa[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.CLKA(i_clk), 
+.CENA(cena_merge), 
+.WENA(wen[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.GWENA(gwena), 
+.AA(addra[RAM_AWD-1:0]), 
+.DA(wdataa[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.QB(ram_outb[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.CLKB(i_clk), 
+.CENB(cenb_merge), 
+.WENB(wenb[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
+.GWENB(GWENB), 
+.AB(addrb[RAM_AWD-1:0]), 
+.DB({RAM_BITS{1'b0}}), 
+.EMAA(EMA), 
+.EMAWA(EMAW), 
+.EMAB(EMA), 
+.EMAWB(EMAW)
+);
+end
+end //gen for
+endgenerate
 
 `endif //`ifdef FPGA
   

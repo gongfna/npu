@@ -27,7 +27,7 @@ module bias_addr_gen
 (
     input i_clk,
     input i_rst_n,
-    input [7:0] i_part_num,
+    input [4:0] i_part_num,
     input [7:0] i_addr_start_b,
     input       i_pe_out_en,
     input       i_calc_en,
@@ -37,7 +37,7 @@ module bias_addr_gen
     output reg [ADDR_WIDTH - 1:0] o_ram_addr,
     output                        o_ram_rd_en
     );
-   reg [5:0]  r_part_num;
+   reg [4:0]  r_part_num;
    reg [8:0]  r_cur_outlayers;
   // reg        r_ram_rd_en;
    
@@ -52,13 +52,13 @@ module bias_addr_gen
 
    always@(posedge i_clk or negedge i_rst_n)begin
        if(!i_rst_n)
-        r_part_num <= 6'h0;
+        r_part_num <= 5'h0;
        else if(i_calc_en)
-          r_part_num <= 6'h0;
+          r_part_num <= 5'h0;
        else
            if(i_pe_out_en&&i_AddrEn)
               if(r_part_num == i_part_num )
-               r_part_num <= 6'h1;
+               r_part_num <= 5'h1;
               else 
                r_part_num <= r_part_num + 1;
            else 

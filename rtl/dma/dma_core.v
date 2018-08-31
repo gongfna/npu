@@ -1180,7 +1180,11 @@ wire [19:0] line_nxt_addr;
 wire [19:0] map_size; //18bit
 //assign map_size = k_x * line_size_inc;
 //assign map_size = k_x_new * line_size_inc - 3;
-assign map_size = line_size * (line_size+(double_pad<<1)+single_pad)*3+3;
+// line_size * 3 *(line_size+dp+sp-1) +(line_size+dp+sp)*3-6
+// === line_size * 3 *(line_size+dp+sp-1) +(line_size+dp+sp-1)*3-3
+// === (line_size+1) * 3 *(line_size+dp+sp-1) -3
+//TODO
+assign map_size = (line_size+1) * (line_size+(double_pad<<1)+single_pad-1)*3-3;
 // ROW=k_x/stride_inc; row_num use to calc maddr_ddr> 5
 // line_nxt_addr = line_nxt * k_x * 3 * stride_inc;
 assign line_nxt_addr = line_nxt * k_x * stride_inc; 

@@ -460,7 +460,7 @@ U_DMA_CORE
 .b_stream(b_stream), 
 .ex_dma(ex_dma), 
 //.line_size(line_size), 
-.line_size(7), 
+.line_size(3), 
 //.stride(stride), 
 .stride(|stride ? stride-1:0), 
 //.pad_num(pad_num), 

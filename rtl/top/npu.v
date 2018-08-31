@@ -395,10 +395,11 @@ module npu
 //-`else
 //-assign i_stride = 2'b0;
 //-`endif
-//-assign i_line_size = 8'd19;
+//assign i_line_size = 8'd7;//7 5
+//assign dma_trans_len = 6;
 //-assign i_pad_num = 2'd2;
-assign i_single_pad = 2'd0;
-assign i_double_pad = 2'd0;
+assign i_single_pad = 2'd1;
+assign i_double_pad = 2'd1;
 assign i_inst_exception=0; 
 wire i_reorg_type;
 assign i_reorg_type=0;
@@ -431,7 +432,7 @@ npu_core U_NPU_CORE
      .o_d_lines             (i_d_lines            ), 
      .o_dma_mode            (i_dma_mode           ),
      .o_ex_dma              (i_ex_dma             ),
-	 .o_dma_i_line_size(i_line_size          ), 
+	 .o_dma_i_line_size(i_line_size), 
      .o_dma_i_stride(i_stride             ), 
      .o_dma_i_pad_num(i_pad_num            ), 
 	 .o_be_stream           (i_b_stream           ), 

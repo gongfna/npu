@@ -34,7 +34,7 @@ class npu_sys_mon_yolo extends uvm_monitor;
         file_idx = 0;
 		for(int i=0;i<1;i++) begin	
 			tr = new("tr");
-			sample_output();
+			sample_output0();
 			ap.write(tr);
 			`uvm_info("npu_sys_mon_yolo","monitor sample_conv1_output put tr to scb",UVM_LOW);
 		end
@@ -55,7 +55,7 @@ class npu_sys_mon_yolo extends uvm_monitor;
 		for(int i=0;i<1352;i++) begin	
 	       	for(int j=0; j<2; j++) begin
 		   		while(1) begin
-		   			@(posedge tb_top.DUT.xclk);
+		   			@(negedge tb_top.DUT.xclk);
 		   			if(tb_top.DUT.iob0_write & tb_top.DUT.iob0_cs) break;	
 		   		end	
 		   		if(tb_top.DUT.iob0_wstrb === 32'h0000_ffff) begin

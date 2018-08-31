@@ -138,7 +138,7 @@ assign mode_m2wb416 = ~dma_mode[3] & dma_mode[2] & ~dma_mode[1] & dma_mode[0];
 assign mode_m2wb256 = ~dma_mode[3] & dma_mode[2] & dma_mode[1] & ~dma_mode[0];
 assign mode_m2wib = ~dma_mode[3] & dma_mode[2] & dma_mode[1] & dma_mode[0];
 assign mode_m2biasb = dma_mode[3] & ~dma_mode[2] & ~dma_mode[1] & ~dma_mode[0];
-assign mode_m2lstmb = dma_mode[3] & ~dma_mode[2] & ~dma_mode[1] & dma_mode[0];
+assign mode_m2lstmb = dma_mode[3] & ~dma_mode[2] & dma_mode[1] & ~dma_mode[0];
 // IOB0/1 converter upsize
 wire [DW_IOB/8-1:0] wstrb_iob;
 assign iob0_wdata = {mdata, mdata};
@@ -288,7 +288,9 @@ U_BIASB_upsize
 reg [15:0] dma_sel;
 wire [15:0] saccept_bus;
 assign saccept_bus ={
-7'b0, 
+5'b0, 
+mode_m2lstmb&lstmb_saccept, 
+1'b0, 
 mode_m2biasb, 
 mode_m2wib&wib_saccept, 
 mode_m2wb256&wb_saccept, 

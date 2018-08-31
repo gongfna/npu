@@ -501,12 +501,16 @@ assign mready_sram = (((ex_dma_lvl|mode_m2instb_r) & mode_m2) | (ex_dma_lvl & mo
                     zone_trans & 
                     saccept_ddr & 
                     ~dma_done;
-assign mwstrb_sram = 32'hffff_ffff;
-////- sort
 reg [31:0] maddr_sram_pre;
 reg [31:0] maddr_cnt;
 reg [31:0] maddr_cnt_z;
 reg [31:0] line_size_cnt;
+assign mwstrb_sram = mode_m2lstmb ?  ((dma_trans_len == maddr_sram_pre)? 
+                        (dma_trans_len[3:0]==3? 16'h0fff:
+                        dma_trans_len[3:0]==2? 16'h00ff:
+                        dma_trans_len[3:0]==1? 16'h000f: 16'hffff) : 16'hffff)
+                         : 16'hffff;
+////- sort
 //reg [31:0] maddr_arr;
 //integer j;
 //always @(*) 
@@ -1101,7 +1105,7 @@ wire [11:0] line_size_mult3_mults;
 wire [9:0] line_size_mult3_mult1;
 wire [10:0] line_size_mult3_mult2;
 wire [11:0] line_size_mult3_mult4;
-assign line_size_mult3 = {2'b0, line_size_in[7:0]} + {1'b0, line_size_in[7:0], 1'b0};
+assign line_size_mult3 = {2'b0, line_size[7:0]} + {1'b0, line_size[7:0], 1'b0};
 assign line_size_mult3_mult1 = stride_inc[0] ? line_size_mult3 : 10'h0 ;
 assign line_size_mult3_mult2 = stride_inc[1] ? line_size_mult3<<1 : 11'h0 ;
 assign line_size_mult3_mult4 = stride_inc[2] ? line_size_mult3<<2 : 12'h0 ;
@@ -1167,6 +1171,7 @@ wire [7:0] map_num_mult3_multstride;
 wire [11:0] k_x_mult_stride_cnt;
 wire [19:0] maddr_ddr_pre;
 wire [31:0] maddr_ddr_remap;
+wire [31:0] maddr_ddr_remap2;
 wire [9:0] k_x;
 wire [9:0] k_x_new;
 //wire [7:0] row_num;
@@ -1174,12 +1179,14 @@ wire [19:0] line_nxt_addr;
 // map_size = line_size * line_size *3;
 wire [19:0] map_size; //18bit
 //assign map_size = k_x * line_size_inc;
-assign map_size = k_x_new * line_size_inc - 3;
+//assign map_size = k_x_new * line_size_inc - 3;
+assign map_size = line_size * (line_size+(double_pad<<1)+single_pad)*3+3;
 // ROW=k_x/stride_inc; row_num use to calc maddr_ddr> 5
 // line_nxt_addr = line_nxt * k_x * 3 * stride_inc;
 assign line_nxt_addr = line_nxt * k_x * stride_inc; 
 assign k_x = {1'b0, line_size_inc, 1'b0} + {2'b0, line_size_inc};
-assign k_x_new = {1'b0, line_size_in, 1'b0} + {2'b0, line_size_in};
+//assign k_x_new = {1'b0, line_size_in, 1'b0} + {2'b0, line_size_in};
+assign k_x_new = {1'b0, line_size, 1'b0} + {2'b0, line_size};
 //assign map_num_mult3 = {2'b0, map_num} + {1'b0, map_num, 1'b0};
 assign map_num_mult3 = {2'b0, map_num_x} + {1'b0, map_num_x, 1'b0};
 assign map_num_mult3_multstride = stride_inc[2] ? {map_num_mult3, 2'b0} :
@@ -1200,10 +1207,11 @@ assign maddr_ddr_pre = //line_nxt_addr  +
 //- double_pad control
 //assign maddr_ddr_remap = {12'h0, maddr_ddr_pre} + maddr_ddr_start;
 wire [31:0] double_pad_addr;
-assign double_pad_addr = double_pad==1 ? k_x_new + 6 : 0;
+assign double_pad_addr = double_pad==1 ? k_x_new + 3 : 0;
 //assign double_pad_addr = 0;
 //assign maddr_ddr_remap = {12'h0, maddr_ddr_pre} + maddr_ddr_start;
 assign maddr_ddr_remap = {12'h0, maddr_ddr_pre} + maddr_ddr_start - double_pad_addr;
+assign maddr_ddr_remap2 = maddr_ddr_remap < maddr_ddr_start ? maddr_ddr_start : maddr_ddr_remap;
 //- wire [2:0] map_num_b2d0_dec;
 //- assign map_num_b2d0_dec = map_num[2:0] - 3'b1;
 `ifdef IVERILOG
@@ -1255,8 +1263,13 @@ reg mwrite_sram_done;
 wire sort_done;
 wire sort_done_sram;
 wire [6:0] map_num_x_max;
-//- map_num_x_max = line_size * 3 /6 = *1 / 2;
-assign map_num_x_max = line_size_in[7:1];
+//- map_num_x_max = line_size * 3 /6 = *1 / 2; 
+//- line_size /stride_inc
+//assign map_num_x_max = line_size_in[7:1];
+assign map_num_x_max = stride_inc==3? (line_size_in)*85>>8 :  // A/256, 85 so close
+					  stride_inc==4? (line_size_in)>>2 : // A/4
+					  stride_inc==2? (line_size_in)>>1 : // A/2
+					                 (line_size_in);
 always @(posedge xclk or negedge xrst_n) 
     if(~xrst_n) begin
 		map_num <= 'h0;
@@ -1323,7 +1336,7 @@ always @(posedge xclk or negedge xrst_n)
 			end
 		    //if(rlast_m) begin
 			stride_cnt_r <= stride_cnt;
-		    if(mread_ddr & arready_in) begin
+		    if(mread_ddr & arready_in & ~sort_done) begin
 			    if(stride_cnt==stride) begin
 					if(map_num_x == map_num_x_max[6:0]) begin
 			    		map_num_x <= 'h0;
@@ -2059,7 +2072,7 @@ assign wlast_m = mwrite_ddr_data &
 // Read Address Channel
 assign arid_m = arid_cfg;
 assign arvalid_m = mread_ddr;
-assign araddr_m = remap_type0 ? maddr_ddr_remap : maddr_ddr[31:0];
+assign araddr_m = remap_type0 ? maddr_ddr_remap2 : maddr_ddr[31:0];
 assign arlen_m = rddr_len;
 assign arsize_m = rddr_size;
 assign arburst_m = arburst_cfg;

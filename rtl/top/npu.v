@@ -399,7 +399,7 @@ module npu
 //assign dma_trans_len = 6;
 //-assign i_pad_num = 2'd2;
 assign i_single_pad = 2'd1;
-assign i_double_pad = 2'd1;
+assign i_double_pad = 2'd0;
 assign i_inst_exception=0; 
 wire i_reorg_type;
 assign i_reorg_type=0;

@@ -75,7 +75,7 @@ module pe_mac_dot #(
     genvar i;
     generate
         for (i = 0; i < DATA_COPIES; i = i + 1) begin : assign_loop
-            assign data[i]       = r_mdata[DATA_WIDTH*i+:DATA_WIDTH];
+            assign data[i]       = r_mdata[DATA_WIDTH*i+:DATA_WIDTH]|r_mdata1[DATA_WIDTH*i+:DATA_WIDTH];
             assign multiplier[i] = (i_src_from2buffer&&dot_en) ? r_mdata[DATA_WIDTH*i+:DATA_WIDTH]  : r_wdata[INDEX_WIDTH*DATA_COPIES+DATA_WIDTH*i+:DATA_WIDTH]; // weight
             assign index[i]      = r_wdata[INDEX_WIDTH*i+:INDEX_WIDTH];
             assign o_mac_result[2*DATA_WIDTH*i+:2*DATA_WIDTH] = c_result[i];
@@ -269,7 +269,7 @@ generate
     assign o_wdata_vld = r_wdata_vld;
     assign o_wdata     = r_wdata;
     assign o_mdata_vld = r_mdata_vld;
-    assign o_mdata     = r_mdata;
+    assign o_mdata     = r_mdata|r_mdata1;
 //////////////////////////////////////////////////////////////////////////////////
 
 reg [19:0]r_mydebug_counter;

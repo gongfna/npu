@@ -204,7 +204,7 @@ module xpe #(
         .i_bias_dat   (i_final_round),
         .i_shift_en   (i_shift_en),
         .i_round_mode (2'b1),
-        .bypass_round(c_max_value_en|c_min_value_en),
+        .bypass_round((c_max_value_en|c_min_value_en)&&(i_xpe_mode==PARA_SIGMOID||i_xpe_mode==PARA_TANH)),
         .o_round_dat  (round_xpe_dat_out)
     );
 

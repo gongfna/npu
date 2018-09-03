@@ -306,7 +306,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			wait(tb_top.DUT.iob1_read);
-			@(posedge tb_top.DUT.mstr_aclk);
+			@(posedge tb_top.xclk);
 			#1;
 			data = tb_top.DUT.iob1_rdata[255:0];
          	//$display("data = %h,data_index = %d",data,i);
@@ -327,7 +327,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			wait(tb_top.DUT.iob0_read);
-			@(posedge tb_top.DUT.mstr_aclk);
+			@(posedge tb_top.xclk);
 			#1;
 			data = tb_top.DUT.iob0_rdata[255:0];
          	//$display("data = %h,data_index = %d",data,i);
@@ -348,7 +348,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			wait(tb_top.DUT.iob1_read);
-			@(posedge tb_top.DUT.mstr_aclk);
+			@(posedge tb_top.xclk);
 			#1;
 			data = tb_top.DUT.iob1_rdata[255:0];
          	//$display("data = %h,data_index = %d",data,i);
@@ -368,7 +368,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			wait(tb_top.DUT.iob1_read);
-			@(posedge tb_top.DUT.mstr_aclk);
+			@(posedge tb_top.xclk);
 			#1;
 			data = tb_top.DUT.iob1_rdata[255:0];
          	//$display("data = %h,data_index = %d",data,i);
@@ -389,7 +389,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			wait(tb_top.DUT.iob0_read);
-			@(posedge tb_top.DUT.mstr_aclk);
+			@(posedge tb_top.xclk);
 			#1;
 			data = tb_top.DUT.iob0_rdata[255:0];
          	//$display("data = %h,data_index = %d",data,i);
@@ -410,7 +410,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			wait(tb_top.DUT.iob1_read);
-			@(posedge tb_top.DUT.mstr_aclk);
+			@(posedge tb_top.xclk);
 			#1;
 			data = tb_top.DUT.iob1_rdata[255:0];
          	//$display("data = %h,data_index = %d",data,i);
@@ -430,7 +430,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			wait(tb_top.DUT.iob0_read);
-			@(posedge tb_top.DUT.mstr_aclk);
+			@(posedge tb_top.xclk);
 			#1;
 			data = tb_top.DUT.iob0_rdata[255:0];
          	//$display("data = %h,data_index = %d",data,i);
@@ -451,7 +451,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			wait(tb_top.DUT.iob1_read);
-			@(posedge tb_top.DUT.mstr_aclk);
+			@(posedge tb_top.xclk);
 			#1;
 			data = tb_top.DUT.iob1_rdata[255:0];
          	//$display("data = %h,data_index = %d",data,i);
@@ -472,7 +472,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			wait(tb_top.DUT.iob0_read);
-			@(posedge tb_top.DUT.mstr_aclk);
+			@(posedge tb_top.xclk);
 			#1;
 			data = tb_top.DUT.iob0_rdata[255:0];
          	//$display("data = %h,data_index = %d",data,i);
@@ -493,7 +493,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			wait(tb_top.DUT.iob1_read);
-			@(posedge tb_top.DUT.mstr_aclk);
+			@(posedge tb_top.xclk);
 			#1;
 			data = tb_top.DUT.iob1_rdata[255:0];
          	//$display("data = %h,data_index = %d",data,i);
@@ -513,7 +513,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -535,7 +535,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -557,7 +557,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -579,7 +579,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -601,7 +601,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -623,7 +623,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<3136;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -645,7 +645,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<1568;i++) begin	
 			wait(tb_top.DUT.iob1_read);
-			@(posedge tb_top.DUT.mstr_aclk);
+			@(posedge tb_top.xclk);
 			#1;
 			data = tb_top.DUT.iob1_rdata[255:0];
          	//$display("data = %h,data_index = %d",data,i);
@@ -665,7 +665,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<1568;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -687,7 +687,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<1568;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -709,7 +709,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<1568;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -731,7 +731,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<1568;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -753,7 +753,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<1568;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -775,7 +775,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<1568;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -796,7 +796,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<784;i++) begin	
 			wait(tb_top.DUT.iob1_read);
-			@(posedge tb_top.DUT.mstr_aclk);
+			@(posedge tb_top.xclk);
 			#1;
 			data = tb_top.DUT.iob1_rdata[255:0];
          	//$display("data = %h,data_index = %d",data,i);
@@ -816,7 +816,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<784;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -838,7 +838,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<784;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -860,7 +860,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<784;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -882,7 +882,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<784;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -904,7 +904,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<784;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -926,7 +926,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<784;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -947,7 +947,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<16;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];
@@ -969,7 +969,7 @@ class npu_sys_mon extends uvm_monitor;
 		fp_w = $fopen(file_name,"w");
 		for(int i=0;i<1;i++) begin	
 			while(1) begin
-				@(posedge tb_top.DUT.mstr_aclk);
+				@(posedge tb_top.xclk);
 				if(tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wr_en) break;	
 			end	
 			data = tb_top.DUT.U_NPU_CORE.U_NPE_TOP.o_iob_wdat[255:0];

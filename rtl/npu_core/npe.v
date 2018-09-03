@@ -130,7 +130,7 @@ module npe #(
     assign mdata[0]     = dot_en ? i_mdata : (i_mdata|i_mdata1);
     assign mdata_vld[0] = dot_en ? i_mdata : (i_mdata_vld|i_mdata_vld1); 
     assign i_mdata_dot     = i_square_mode ? i_mdata : i_mdata1;
-    assign i_mdata_vld_dot = i_square_mode ? i_mdata_vld : i_mdata_vld1;
+    assign i_mdata_vld_dot = i_square_mode ? i_mdata_vld : (dot_en ? i_mdata_vld1:pe_mac_ld_en[0] );
      
      //integer f_pe;
      integer f_input;
@@ -189,7 +189,7 @@ module npe #(
                 .i_wdata                (wdata[0]           ), 
                 .i_wdata_vld            (wdata_vld[0]       ), 
                 .i_mdata                (i_mdata           ), 
-                .i_mdata_vld            (i_mdata_vld    ), 
+                .i_mdata_vld            (pe_mac_ld_en[0]    ), 
                 .i_mdata1               (i_mdata_dot           ), 
                 .i_mdata_vld1           (i_mdata_vld_dot    ), 
                 .o_wdata                (wdata[1]         ), 

@@ -258,7 +258,7 @@ assign npu_wr = i_iob_wr_en;
 assign npu_rd = i_iob_rd_en;
 generate 
 for(genvar i=0;i<BITS/8;i=i+1) begin
-assign wen[8*(i+1)-1:8*i] = {8{~(i_iob_bramctl_be[i]&w_iob_wea)}};
+assign wen[8*(i+1)-1:8*i] = {8{~(i_iob_bramctl_be[i]&i_iob_bramctl_we)}};
 end
 endgenerate
 assign wenb = {BITS{~i_iob_wr_en}};
@@ -271,7 +271,7 @@ assign wdatab = i_iob_wdat;
 wire gwena;
 assign gwena = ~i_iob_bramctl_we;
 wire GWENB;
-assign GWENB = ~i_iob_wr_en;
+assign GWENB = ~(i_iob_wr_en & ~i_wsel);
 
 generate 
 if((WORDSWD-RAM_AWD)==2) begin

@@ -86,8 +86,8 @@ generate
 if(REG_OUT==1'b1) begin 
 reg [BITS-1:0] ram_outa_r;
 reg [BITS-1:0] ram_outb_r;
-assign o_mdata = r_mdata_sel ? ram_outb_r: 256'b0;
-assign o_iob_bramctl_rdata=ram_outa_r[BITS-1:0];
+assign o_mdata = r_mdata_sel ? ram_outa_r: 256'b0;
+assign o_iob_bramctl_rdata=ram_outb_r[BITS-1:0];
 
 always@(posedge i_clk or negedge i_rst_n)
 	if(~i_rst_n)begin
@@ -100,8 +100,8 @@ always@(posedge i_clk or negedge i_rst_n)
 	end
 end
 else begin //REG_OUT==1'b0
-assign o_mdata = r_mdata_sel ? ram_outb: 256'b0;
-assign o_iob_bramctl_rdata = ram_outa[BITS-1:0];
+assign o_mdata = r_mdata_sel ? ram_outa: 256'b0;
+assign o_iob_bramctl_rdata = ram_outb[BITS-1:0];
 end
 endgenerate
 
@@ -169,34 +169,6 @@ iob_ram
 );
 `else
 
-wire cena;
-wire cenb;
-assign cena = ~i_iob_bramctl_en;
-assign cenb = ~(i_iob_wr_en | i_iob_rd_en);
-
-wire [BITS-1:0] wen;
-wire [BITS-1:0] wenb;
-generate 
-for(genvar i=0;i<BITS/8;i=i+1) begin
-assign wen[8*(i+1)-1:8*i] = {8{~(i_iob_bramctl_be[i]&w_iob_wea)}};
-end
-endgenerate
-assign wenb = {BITS{i_wsel}};
-
-wire [WORDSWD-1:0] addra;
-wire [WORDSWD-1:0] addrb;
-assign addra = i_iob_bramctl_addr;
-assign addrb = ~i_wsel ? i_iob_waddr : i_iob_raddr;
-wire [BITS-1:0] wdataa;
-wire [BITS-1:0] wdatab;
-assign wdataa = i_iob_bramctl_wdata;
-assign wdatab = i_iob_wdat;
-
-
-wire gwena;
-assign gwena = ~i_iob_bramctl_we;
-wire GWENB;
-assign GWENB = i_wsel;
 //---------------------------------------------------
 //-------------------------------------------------------
 
@@ -266,39 +238,167 @@ wire [BITS-1:0] ram_out3b;
 wire [BITS-1:0] ram_out2b;
 wire [BITS-1:0] ram_out1b;
 wire [BITS-1:0] ram_out0b;
+wire [BITS-1:0] wen;
+wire [BITS-1:0] wenb;
+wire [WORDSWD-1:0] addra3;
+wire [WORDSWD-1:0] addrb3;
+wire [WORDSWD-1:0] addra2;
+wire [WORDSWD-1:0] addrb2;
+wire [WORDSWD-1:0] addra1;
+wire [WORDSWD-1:0] addrb1;
+wire [WORDSWD-1:0] addra0;
+wire [WORDSWD-1:0] addrb0;
+wire dma_wr;
+wire dma_rd;
+wire npu_wr;
+wire npu_rd;
+assign dma_wr = i_iob_bramctl_en & i_iob_bramctl_we;
+assign dma_rd = i_iob_bramctl_en & ~i_iob_bramctl_we;
+assign npu_wr = i_iob_wr_en;
+assign npu_rd = i_iob_rd_en;
+generate 
+for(genvar i=0;i<BITS/8;i=i+1) begin
+assign wen[8*(i+1)-1:8*i] = {8{~(i_iob_bramctl_be[i]&w_iob_wea)}};
+end
+endgenerate
+assign wenb = {BITS{~i_iob_wr_en}};
+
+wire [BITS-1:0] wdataa;
+wire [BITS-1:0] wdatab;
+assign wdataa = i_iob_bramctl_wdata;
+assign wdatab = i_iob_wdat;
+
+wire gwena;
+assign gwena = ~i_iob_bramctl_we;
+wire GWENB;
+assign GWENB = ~i_iob_wr_en;
+
 generate 
 if((WORDSWD-RAM_AWD)==2) begin
-assign cena_merge[3] = ~( addra[WORDSWD-1] &  addra[WORDSWD-2] & ~cena);
-assign cena_merge[2] = ~( addra[WORDSWD-1] & ~addra[WORDSWD-2] & ~cena);
-assign cena_merge[1] = ~(~addra[WORDSWD-1] &  addra[WORDSWD-2] & ~cena);
-assign cena_merge[0] = ~(~addra[WORDSWD-1] & ~addra[WORDSWD-2] & ~cena);
-assign ram_outa = addra[WORDSWD-1] & addra[WORDSWD-2] ? ram_out3a :
-                 addra[WORDSWD-1] & ~addra[WORDSWD-2] ? ram_out2a :
-                 ~addra[WORDSWD-1] & addra[WORDSWD-2] ? ram_out1a :
-				                                        ram_out0a;
-assign cenb_merge[3] = ~( addrb[WORDSWD-1] &  addrb[WORDSWD-2] & ~cenb);
-assign cenb_merge[2] = ~( addrb[WORDSWD-1] & ~addrb[WORDSWD-2] & ~cenb);
-assign cenb_merge[1] = ~(~addrb[WORDSWD-1] &  addrb[WORDSWD-2] & ~cenb);
-assign cenb_merge[0] = ~(~addrb[WORDSWD-1] & ~addrb[WORDSWD-2] & ~cenb);
-assign ram_outb  = addrb[WORDSWD-1] &  addrb[WORDSWD-2] ? ram_out3b :
-                  addrb[WORDSWD-1] & ~addrb[WORDSWD-2] ? ram_out2b :
-                 ~addrb[WORDSWD-1] &  addrb[WORDSWD-2] ? ram_out1b :
-				                                         ram_out0b;
+reg [WORDSWD-RAM_AWD-1:0] addra3_r;
+reg [WORDSWD-RAM_AWD-1:0] addrb3_r;
+reg [WORDSWD-RAM_AWD-1:0] addra2_r;
+reg [WORDSWD-RAM_AWD-1:0] addrb2_r;
+reg [WORDSWD-RAM_AWD-1:0] addra1_r;
+reg [WORDSWD-RAM_AWD-1:0] addrb1_r;
+reg [WORDSWD-RAM_AWD-1:0] addra0_r;
+reg [WORDSWD-RAM_AWD-1:0] addrb0_r;
+always @(posedge i_clk or negedge i_rst_n) 
+	if(~i_rst_n) begin
+		addra3_r <= 'b0;
+		addrb3_r <= 'b0;
+		addra2_r <= 'b0;
+		addrb2_r <= 'b0;
+		addra1_r <= 'b0;
+		addrb1_r <= 'b0;
+		addra0_r <= 'b0;
+		addrb0_r <= 'b0;
+	end
+	else begin
+		addra3_r <= addra3[WORDSWD-1:WORDSWD-2];
+		addrb3_r <= addrb3[WORDSWD-1:WORDSWD-2];
+		addra2_r <= addra2[WORDSWD-1:WORDSWD-2];
+		addrb2_r <= addrb2[WORDSWD-1:WORDSWD-2];
+		addra1_r <= addra1[WORDSWD-1:WORDSWD-2];
+		addrb1_r <= addrb1[WORDSWD-1:WORDSWD-2];
+		addra0_r <= addra0[WORDSWD-1:WORDSWD-2];
+		addrb0_r <= addrb0[WORDSWD-1:WORDSWD-2];
+	end
+wire [3:0] addra_cs;
+wire [3:0] addrb_cs;
+wire [3:0] dma_addr_cs;
+wire [3:0] cena;
+wire [3:0] cenb;
+
+assign dma_addr_cs[3] =  i_iob_bramctl_addr[WORDSWD-1] &  i_iob_bramctl_addr[WORDSWD-2];
+assign dma_addr_cs[2] =  i_iob_bramctl_addr[WORDSWD-1] & ~i_iob_bramctl_addr[WORDSWD-2];
+assign dma_addr_cs[1] = ~i_iob_bramctl_addr[WORDSWD-1] &  i_iob_bramctl_addr[WORDSWD-2];
+assign dma_addr_cs[0] = ~i_iob_bramctl_addr[WORDSWD-1] & ~i_iob_bramctl_addr[WORDSWD-2];
+
+assign addra3 = (dma_wr & dma_addr_cs[3]) ? i_iob_bramctl_addr : i_iob_raddr;
+assign addrb3 = (dma_rd & dma_addr_cs[3]) ? i_iob_bramctl_addr : i_iob_waddr;
+assign addra2 = (dma_wr & dma_addr_cs[2]) ? i_iob_bramctl_addr : i_iob_raddr;
+assign addrb2 = (dma_rd & dma_addr_cs[2]) ? i_iob_bramctl_addr : i_iob_waddr;
+assign addra1 = (dma_wr & dma_addr_cs[1]) ? i_iob_bramctl_addr : i_iob_raddr;
+assign addrb1 = (dma_rd & dma_addr_cs[1]) ? i_iob_bramctl_addr : i_iob_waddr;
+assign addra0 = (dma_wr & dma_addr_cs[0]) ? i_iob_bramctl_addr : i_iob_raddr;
+assign addrb0 = (dma_rd & dma_addr_cs[0]) ? i_iob_bramctl_addr : i_iob_waddr;
+
+assign addra_cs[3] =  addra3[WORDSWD-1] &  addra3[WORDSWD-2];
+assign addra_cs[2] =  addra2[WORDSWD-1] & ~addra2[WORDSWD-2];
+assign addra_cs[1] = ~addra1[WORDSWD-1] &  addra1[WORDSWD-2];
+assign addra_cs[0] = ~addra0[WORDSWD-1] & ~addra0[WORDSWD-2];
+
+assign addrb_cs[3] =  addrb3[WORDSWD-1] &  addrb3[WORDSWD-2];
+assign addrb_cs[2] =  addrb2[WORDSWD-1] & ~addrb2[WORDSWD-2];
+assign addrb_cs[1] = ~addrb1[WORDSWD-1] &  addrb1[WORDSWD-2];
+assign addrb_cs[0] = ~addrb0[WORDSWD-1] & ~addrb0[WORDSWD-2];
+
+assign cena[3] = addra_cs[3] & (npu_rd | dma_wr);
+assign cena[2] = addra_cs[2] & (npu_rd | dma_wr);
+assign cena[1] = addra_cs[1] & (npu_rd | dma_wr);
+assign cena[0] = addra_cs[0] & (npu_rd | dma_wr);
+//assign cenb = ~(i_iob_wr_en | i_iob_rd_en);
+
+assign cena_merge[3] = ~cena[3];
+assign cena_merge[2] = ~cena[2];
+assign cena_merge[1] = ~cena[1];
+assign cena_merge[0] = ~cena[0];
+assign ram_outb = addra3_r[1] &  addra3_r[0] ? ram_out3b :
+                  addra2_r[1] & ~addra2_r[0] ? ram_out2b :
+                 ~addra1_r[1] &  addra1_r[0] ? ram_out1b :
+				                             ram_out0b;
+
+assign cenb[3] = addrb_cs[3] & (npu_wr | dma_rd);
+assign cenb[2] = addrb_cs[2] & (npu_wr | dma_rd);
+assign cenb[1] = addrb_cs[1] & (npu_wr | dma_rd);
+assign cenb[0] = addrb_cs[0] & (npu_wr | dma_rd);
+
+assign cenb_merge[3] = ~cenb;
+assign cenb_merge[2] = ~cenb;
+assign cenb_merge[1] = ~cenb;
+assign cenb_merge[0] = ~cenb;
+assign ram_outa  = addrb3_r[1] &  addrb3_r[0] ? ram_out3a :
+                   addrb2_r[1] & ~addrb2_r[0] ? ram_out2a :
+                  ~addrb1_r[1] &  addrb1_r[0] ? ram_out1a :
+				                              ram_out0a;
 end
-if((WORDSWD-RAM_AWD)==1) begin
-assign cena_merge[1] = ~( addra[WORDSWD-1] & ~cena);
-assign cena_merge[0] = ~(~addra[WORDSWD-1] & ~cena);
-assign ram_outa = addra[WORDSWD-1] ? ram_out1a :
-				                     ram_out0a;
-assign cenb_merge[1] = ~( addrb[WORDSWD-1] & ~cenb);
-assign cenb_merge[0] = ~(~addrb[WORDSWD-1] & ~cenb);
-assign ram_outb  = addrb[WORDSWD-1] ? ram_out1b :
-				                     ram_out0b;
-end
-if((WORDSWD-RAM_AWD)==0) begin
-assign cena_merge = cena;
-assign cenb_merge = cenb;
-end
+//-if((WORDSWD-RAM_AWD)==1) begin
+//-reg  addra_r;
+//-reg  addrb_r;
+//-always @(posedge i_clk or negedge i_rst_n) 
+//-	if(~i_rst_n) begin
+//-		addra_r <= 'b0;
+//-		addrb_r <= 'b0;
+//-	end
+//-	else begin
+//-		addra_r <= addra[WORDSWD-1];
+//-		addrb_r <= addrb[WORDSWD-1];
+//-	end
+//-
+//-wire [1:0] cena;
+//-wire [1:0] cenb;
+//-assign cena[1] =  addra[WORDSWD-1] & i_iob_bramctl_en;
+//-assign cena[0] = ~addra[WORDSWD-1] & i_iob_bramctl_en;
+//-assign cena_merge[1] = ~cena[1];
+//-assign cena_merge[0] = ~cena[0];
+//-assign ram_outa = addra_r[0] ? ram_out1a :
+//-				                     ram_out0a;
+//-assign cenb[1] =  addrb[WORDSWD-1] & i_iob_en;
+//-assign cenb[0] = ~addrb[WORDSWD-1] & i_iob_en;
+//-assign cenb_merge[1] = ~cenb[1];
+//-assign cenb_merge[0] = ~cenb[0];
+//-assign ram_outb  = addrb_r[0] ? ram_out1b :
+//-				                     ram_out0b;
+//-end
+//-if((WORDSWD-RAM_AWD)==0) begin
+//-wire cena;
+//-wire cenb;
+//-assign cena = i_iob_bramctl_en;
+//-assign cenb = i_iob_en;
+//-assign cena_merge = ~cena;
+//-assign cenb_merge = ~cenb;
+//-end
 endgenerate
 
 generate
@@ -338,14 +438,14 @@ U_ram3
 .CENA(cena_merge[3]), 
 .WENA(wen[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .GWENA(gwena), 
-.AA(addra[RAM_AWD-1:0]), 
+.AA(addra3[RAM_AWD-1:0]), 
 .DA(wdataa[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .QB(ram_out3b[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .CLKB(i_clk), 
 .CENB(cenb_merge[3]), 
 .WENB(wenb[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .GWENB(GWENB), 
-.AB(addrb[RAM_AWD-1:0]), 
+.AB(addrb3[RAM_AWD-1:0]), 
 .DB(wdatab[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .EMAA(EMA), 
 .EMAWA(EMAW), 
@@ -386,14 +486,14 @@ U_ram2
 .CENA(cena_merge[2]), 
 .WENA(wen[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .GWENA(gwena), 
-.AA(addra[RAM_AWD-1:0]), 
+.AA(addra2[RAM_AWD-1:0]), 
 .DA(wdataa[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .QB(ram_out2b[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .CLKB(i_clk), 
 .CENB(cenb_merge[2]), 
 .WENB(wenb[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .GWENB(GWENB), 
-.AB(addrb[RAM_AWD-1:0]), 
+.AB(addrb2[RAM_AWD-1:0]), 
 .DB(wdatab[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .EMAA(EMA), 
 .EMAWA(EMAW), 
@@ -436,14 +536,14 @@ U_ram1
 .CENA(cena_merge[1]), 
 .WENA(wen[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .GWENA(gwena), 
-.AA(addra[RAM_AWD-1:0]), 
+.AA(addra1[RAM_AWD-1:0]), 
 .DA(wdataa[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .QB(ram_out1b[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .CLKB(i_clk), 
 .CENB(cenb_merge[1]), 
 .WENB(wenb[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .GWENB(GWENB), 
-.AB(addrb[RAM_AWD-1:0]), 
+.AB(addrb1[RAM_AWD-1:0]), 
 .DB(wdatab[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .EMAA(EMA), 
 .EMAWA(EMAW), 
@@ -484,14 +584,14 @@ U_ram0
 .CENA(cena_merge[0]), 
 .WENA(wen[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .GWENA(gwena), 
-.AA(addra[RAM_AWD-1:0]), 
+.AA(addra0[RAM_AWD-1:0]), 
 .DA(wdataa[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .QB(ram_out0b[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .CLKB(i_clk), 
 .CENB(cenb_merge[0]), 
 .WENB(wenb[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .GWENB(GWENB), 
-.AB(addrb[RAM_AWD-1:0]), 
+.AB(addrb0[RAM_AWD-1:0]), 
 .DB(wdatab[RAM_BITS*(num+1)-1:RAM_BITS*num]), 
 .EMAA(EMA), 
 .EMAWA(EMAW), 

@@ -254,7 +254,7 @@ wire npu_wr;
 wire npu_rd;
 assign dma_wr = i_iob_bramctl_en & i_iob_bramctl_we;
 assign dma_rd = i_iob_bramctl_en & ~i_iob_bramctl_we;
-assign npu_wr = i_iob_wr_en;
+assign npu_wr = i_iob_wr_en & ~i_wsel;
 assign npu_rd = i_iob_rd_en;
 generate 
 for(genvar i=0;i<BITS/8;i=i+1) begin
@@ -307,6 +307,8 @@ always @(posedge i_clk or negedge i_rst_n)
 wire [3:0] addra_cs;
 wire [3:0] addrb_cs;
 wire [3:0] dma_addr_cs;
+wire [3:0] npu_waddr_cs;
+wire [3:0] npu_raddr_cs;
 wire [3:0] cena;
 wire [3:0] cenb;
 
@@ -315,14 +317,32 @@ assign dma_addr_cs[2] =  i_iob_bramctl_addr[WORDSWD-1] & ~i_iob_bramctl_addr[WOR
 assign dma_addr_cs[1] = ~i_iob_bramctl_addr[WORDSWD-1] &  i_iob_bramctl_addr[WORDSWD-2];
 assign dma_addr_cs[0] = ~i_iob_bramctl_addr[WORDSWD-1] & ~i_iob_bramctl_addr[WORDSWD-2];
 
-assign addra3 = (dma_wr & dma_addr_cs[3]) ? i_iob_bramctl_addr : i_iob_raddr;
-assign addrb3 = (dma_rd & dma_addr_cs[3]) ? i_iob_bramctl_addr : i_iob_waddr;
-assign addra2 = (dma_wr & dma_addr_cs[2]) ? i_iob_bramctl_addr : i_iob_raddr;
-assign addrb2 = (dma_rd & dma_addr_cs[2]) ? i_iob_bramctl_addr : i_iob_waddr;
-assign addra1 = (dma_wr & dma_addr_cs[1]) ? i_iob_bramctl_addr : i_iob_raddr;
-assign addrb1 = (dma_rd & dma_addr_cs[1]) ? i_iob_bramctl_addr : i_iob_waddr;
-assign addra0 = (dma_wr & dma_addr_cs[0]) ? i_iob_bramctl_addr : i_iob_raddr;
-assign addrb0 = (dma_rd & dma_addr_cs[0]) ? i_iob_bramctl_addr : i_iob_waddr;
+assign npu_waddr_cs[3] =  i_iob_waddr[WORDSWD-1] &  i_iob_waddr[WORDSWD-2];
+assign npu_waddr_cs[2] =  i_iob_waddr[WORDSWD-1] & ~i_iob_waddr[WORDSWD-2];
+assign npu_waddr_cs[1] = ~i_iob_waddr[WORDSWD-1] &  i_iob_waddr[WORDSWD-2];
+assign npu_waddr_cs[0] = ~i_iob_waddr[WORDSWD-1] & ~i_iob_waddr[WORDSWD-2];
+
+assign npu_raddr_cs[3] =  i_iob_raddr[WORDSWD-1] &  i_iob_raddr[WORDSWD-2];
+assign npu_raddr_cs[2] =  i_iob_raddr[WORDSWD-1] & ~i_iob_raddr[WORDSWD-2];
+assign npu_raddr_cs[1] = ~i_iob_raddr[WORDSWD-1] &  i_iob_raddr[WORDSWD-2];
+assign npu_raddr_cs[0] = ~i_iob_raddr[WORDSWD-1] & ~i_iob_raddr[WORDSWD-2];
+
+assign addra3 = (dma_wr & dma_addr_cs[3]) ? i_iob_bramctl_addr : 
+                    (npu_rd & npu_raddr_cs[3]) ? i_iob_raddr : 'h0;
+assign addrb3 = (dma_rd & dma_addr_cs[3]) ? i_iob_bramctl_addr : 
+                    (npu_wr & npu_waddr_cs[3]) ? i_iob_waddr : 'h0;
+assign addra2 = (dma_wr & dma_addr_cs[2]) ? i_iob_bramctl_addr : 
+                    (npu_rd & npu_raddr_cs[2]) ? i_iob_raddr : 'h0;
+assign addrb2 = (dma_rd & dma_addr_cs[2]) ? i_iob_bramctl_addr : 
+                    (npu_wr & npu_waddr_cs[2]) ? i_iob_waddr : 'h0;
+assign addra1 = (dma_wr & dma_addr_cs[1]) ? i_iob_bramctl_addr : 
+                    (npu_rd & npu_raddr_cs[1]) ? i_iob_raddr : 'h0;
+assign addrb1 = (dma_rd & dma_addr_cs[1]) ? i_iob_bramctl_addr : 
+                    (npu_wr & npu_waddr_cs[1]) ? i_iob_waddr : 'h0;
+assign addra0 = (dma_wr & dma_addr_cs[0]) ? i_iob_bramctl_addr : 
+                    (npu_rd & npu_raddr_cs[0]) ? i_iob_raddr : 'hc00;
+assign addrb0 = (dma_rd & dma_addr_cs[0]) ? i_iob_bramctl_addr : 
+                    (npu_wr & npu_waddr_cs[0]) ? i_iob_waddr : 'hc00;
 
 assign addra_cs[3] =  addra3[WORDSWD-1] &  addra3[WORDSWD-2];
 assign addra_cs[2] =  addra2[WORDSWD-1] & ~addra2[WORDSWD-2];
@@ -344,9 +364,9 @@ assign cena_merge[3] = ~cena[3];
 assign cena_merge[2] = ~cena[2];
 assign cena_merge[1] = ~cena[1];
 assign cena_merge[0] = ~cena[0];
-assign ram_outb = addra3_r[1] &  addra3_r[0] ? ram_out3b :
-                  addra2_r[1] & ~addra2_r[0] ? ram_out2b :
-                 ~addra1_r[1] &  addra1_r[0] ? ram_out1b :
+assign ram_outb = addrb3_r[1] &  addrb3_r[0] ? ram_out3b :
+                  addrb2_r[1] & ~addrb2_r[0] ? ram_out2b :
+                 ~addrb1_r[1] &  addrb1_r[0] ? ram_out1b :
 				                             ram_out0b;
 
 assign cenb[3] = addrb_cs[3] & (npu_wr | dma_rd);
@@ -354,13 +374,13 @@ assign cenb[2] = addrb_cs[2] & (npu_wr | dma_rd);
 assign cenb[1] = addrb_cs[1] & (npu_wr | dma_rd);
 assign cenb[0] = addrb_cs[0] & (npu_wr | dma_rd);
 
-assign cenb_merge[3] = ~cenb;
-assign cenb_merge[2] = ~cenb;
-assign cenb_merge[1] = ~cenb;
-assign cenb_merge[0] = ~cenb;
-assign ram_outa  = addrb3_r[1] &  addrb3_r[0] ? ram_out3a :
-                   addrb2_r[1] & ~addrb2_r[0] ? ram_out2a :
-                  ~addrb1_r[1] &  addrb1_r[0] ? ram_out1a :
+assign cenb_merge[3] = ~cenb[3];
+assign cenb_merge[2] = ~cenb[2];
+assign cenb_merge[1] = ~cenb[1];
+assign cenb_merge[0] = ~cenb[0];
+assign ram_outa  = addra3_r[1] &  addra3_r[0] ? ram_out3a :
+                   addra2_r[1] & ~addra2_r[0] ? ram_out2a :
+                  ~addra1_r[1] &  addra1_r[0] ? ram_out1a :
 				                              ram_out0a;
 end
 //-if((WORDSWD-RAM_AWD)==1) begin

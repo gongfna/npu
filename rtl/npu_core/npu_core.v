@@ -414,7 +414,7 @@ module npu_core
         .i_iob_waddr  (o_iob_waddr[11:0]),
         .i_iob_wr_en  (o_iob_wr_en),
         .i_iob_wdat	  (o_iob_wdat),
-        .i_wsel      (~c_wsel),
+        .i_wsel      (c_wsel),
         .o_mdata      (i_mdata_0),
         .o_mdata_vld  (i_mdata_vld_0)
     );
@@ -444,7 +444,7 @@ module npu_core
         .i_iob_waddr    (o_iob_waddr[11:0]),
         .i_iob_wr_en    (o_iob_wr_en),
         .i_iob_wdat     (o_iob_wdat),
-        .i_wsel        (c_wsel),
+        .i_wsel        (~c_wsel),
     	.o_mdata        (i_mdata_1),
     	.o_mdata_vld    (i_mdata_vld_1)
     ); 

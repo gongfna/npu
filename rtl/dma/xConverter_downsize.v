@@ -44,7 +44,8 @@ reg [DWM-1:0] xsel;
 reg [CWIDTH-1:0] addr_cal;
 integer i;
 assign saccept = xsel[DWM-1];
-assign addro = {maddr[DWADDR-CWIDTH-1:CWIDTH], addr_cal};
+//assign addro = {maddr[DWADDR-CWIDTH-1:CWIDTH], addr_cal};
+assign addro = maddr[DWADDR-1:0];
 
 always @(*) 
     begin

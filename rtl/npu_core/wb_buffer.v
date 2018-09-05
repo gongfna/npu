@@ -227,22 +227,33 @@ wire [BITS-1:0] ram_out1b;
 wire [BITS-1:0] ram_out0b;
 generate 
 if((WORDSWD-RAM_AWD)==2) begin
+reg [WORDSWD-RAM_AWD-1:0] addra_r;
+reg [WORDSWD-RAM_AWD-1:0] addrb_r;
+always @(posedge i_clk or negedge i_rst_n) 
+	if(~i_rst_n) begin
+		addra_r <= 'b0;
+		addrb_r <= 'b0;
+	end
+	else begin
+		addra_r <= addra[WORDSWD-1:WORDSWD-2];
+		addrb_r <= addrb[WORDSWD-1:WORDSWD-2];
+	end
 assign cena_merge[3] = ~( addra[WORDSWD-1] &  addra[WORDSWD-2] & ~cena);
 assign cena_merge[2] = ~( addra[WORDSWD-1] & ~addra[WORDSWD-2] & ~cena);
 assign cena_merge[1] = ~(~addra[WORDSWD-1] &  addra[WORDSWD-2] & ~cena);
 assign cena_merge[0] = ~(~addra[WORDSWD-1] & ~addra[WORDSWD-2] & ~cena);
-assign ram_outa = addra[WORDSWD-1] & addra[WORDSWD-2] ? ram_out3a :
-                 addra[WORDSWD-1] & ~addra[WORDSWD-2] ? ram_out2a :
-                 ~addra[WORDSWD-1] & addra[WORDSWD-2] ? ram_out1a :
-				                                        ram_out0a;
+assign ram_outa = addra_r[1] &  addra_r[0] ? ram_out3a :
+                  addra_r[1] & ~addra_r[0] ? ram_out2a :
+                 ~addra_r[1] &  addra_r[0] ? ram_out1a :
+				                                         ram_out0a;
 assign cenb_merge[3] = ~( addrb[WORDSWD-1] &  addrb[WORDSWD-2] & ~cenb);
 assign cenb_merge[2] = ~( addrb[WORDSWD-1] & ~addrb[WORDSWD-2] & ~cenb);
 assign cenb_merge[1] = ~(~addrb[WORDSWD-1] &  addrb[WORDSWD-2] & ~cenb);
 assign cenb_merge[0] = ~(~addrb[WORDSWD-1] & ~addrb[WORDSWD-2] & ~cenb);
-assign ram_outb  = addrb[WORDSWD-1] &  addrb[WORDSWD-2] ? ram_out3b :
-                  addrb[WORDSWD-1] & ~addrb[WORDSWD-2] ? ram_out2b :
-                 ~addrb[WORDSWD-1] &  addrb[WORDSWD-2] ? ram_out1b :
-				                                         ram_out0b;
+assign ram_outb  = addrb_r[1] &  addrb_r[0] ? ram_out3b :
+                   addrb_r[1] & ~addrb_r[0] ? ram_out2b :
+                  ~addrb_r[1] &  addrb_r[0] ? ram_out1b :
+				                                          ram_out0b;
 end
 if((WORDSWD-RAM_AWD)==1) begin
 assign cena_merge[1] = ~( addra[WORDSWD-1] & ~cena);

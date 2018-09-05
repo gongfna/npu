@@ -320,7 +320,7 @@ assign mode_m2wb416 = ~dma_mode[3] & dma_mode[2] & ~dma_mode[1] & dma_mode[0];
 assign mode_m2wb256 = ~dma_mode[3] & dma_mode[2] & dma_mode[1] & ~dma_mode[0];
 assign mode_m2wib = ~dma_mode[3] & dma_mode[2] & dma_mode[1] & dma_mode[0];
 assign mode_m2biasb = dma_mode[3] & ~dma_mode[2] & ~dma_mode[1] & ~dma_mode[0];
-assign mode_m2lstmb = dma_mode[3] & ~dma_mode[2] & ~dma_mode[1] & dma_mode[0];
+assign mode_m2lstmb = dma_mode[3] & ~dma_mode[2] & dma_mode[1] & ~dma_mode[0];
 //assign mode_m2_down = mode_m2wb416 | mode_m2wb256 | mode_m2wib | mode_m2lstmb;
 assign mode_m2_down = mode_m2wib | mode_m2lstmb;
 //- AGU

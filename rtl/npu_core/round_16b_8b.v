@@ -28,12 +28,9 @@ module round_16b_8b (
     input [1:0] i_round_mode,
 
     input unsigned [4:0] shift_num,
-    input bypass_round,
     input signed   [15:0] dat_i   ,
 
-    output reg signed [7:0] dat_o,
-    output act_max,
-    output act_min
+    output reg signed [7:0] dat_o
 );
  
     parameter Max_Value =$signed(8'h7f);
@@ -46,7 +43,7 @@ module round_16b_8b (
     reg round_g;
     reg [6:0] round_r;
     reg round_lsb;
-    assign shift_result_t =  i_shift_en ? (bypass_round ? dat_i>>4'b1000 : dat_i >>> shift_num) : dat_i;
+    assign shift_result_t =  i_shift_en ? dat_i >>> shift_num : dat_i;
     // assign round_g = dat_i[7];
     // assign round_lsb = dat_i[8];
     // assign round_r = |dat_i[6:0];
@@ -135,31 +132,11 @@ module round_16b_8b (
             end
         endcase
     end
-///////////////////////////////////////////////////////////////
-/*
-always @(*)
-    begin
-        case(o_q_encode)
-        4'b0101:begin
-        end
-        4'b0110:begin
-        end
-        4'b0111:begin
-        end
-        endcase
-    end
-    */
-/////////////////////////////////////////////////////////////////////
-    //assign add_one = (round_g&round_r) || (&{round_lsb, round_g, ~round_r});    
+   
     assign add_one = round_g;
-    // assign shift_result_t1 = shift_result_t + Fixd_Value;
-    assign shift_result = (add_one & i_shift_en) && (i_round_mode != 2'b0)&& !bypass_round ? (shift_result_t + Fixd_Value) : shift_result_t;
-  // assign shift_result = add_one&i_shift_en ? (shift_result_t + Fixd_Value) : shift_result_t ;
-    // assign shift_result = ( shift_result_t1 >>> 1'b1 );  
-    // assign shift_result = ( shift_result_t1 >>> 1'b1 ); 
+    assign shift_result = (add_one & i_shift_en) && (i_round_mode != 2'b0) ? (shift_result_t + Fixd_Value) : shift_result_t;
     always@(posedge i_clk or negedge i_rst_n) begin
         if (!i_rst_n)                     dat_o <= 0;
-        else if (bypass_round) dat_o <= shift_result[7:0] ;
         else if(shift_result > Max_Value) dat_o <= Max_Value;
         else if(shift_result < Min_Value) dat_o <= Min_Value;
         else                              dat_o <= shift_result[7:0] ;

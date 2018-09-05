@@ -620,7 +620,7 @@ module npu_core
         .o_wib_raddr        (o_wib_raddr),
         .o_wib_rd_en        (o_wib_rd_en),
         .i_lut_bramctl_wdata(i_lstmb_bramctl_wdata[23:0]),
-	      .i_lut_bramctl_addr (i_lstmb_bramctl_addr[3:0] ),
+	      .i_lut_bramctl_addr (i_lstmb_bramctl_addr ),
 	      .i_lut_bramctl_we   (i_lstmb_bramctl_we   ),
 	      .i_lut_bramctl_en   (i_lstmb_bramctl_en   )    
     );

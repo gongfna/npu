@@ -115,7 +115,7 @@ output [255:0]																					o_iob_wdat					,
  output 																									o_wib_rd_en	,                                                              
  // act_fun LUT interface                                                                                                           
  input [23:0] i_lut_bramctl_wdata,                                                                                                  
- input [3:0]  i_lut_bramctl_addr ,                                                                                                  
+ input [4:0]  i_lut_bramctl_addr ,                                                                                                  
  input   i_lut_bramctl_we   ,                                                                                                       
  input        i_lut_bramctl_en   				                                                                                           
 );                                                                                                                                     

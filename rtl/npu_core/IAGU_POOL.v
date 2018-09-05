@@ -261,7 +261,7 @@ module IAGU_POOL (
     always@(posedge i_clk or negedge i_rst_n) begin
         if (!i_rst_n)
             r_Cur_kernel_row_col_noPad <= 12'd0;
-        else if (r4_Start || r4_CurRowEn || r4_CurInputPieceEn || r4_CurColEn)    //CHN:每个新的窗口，重新计算初始地址
+        else if (r4_Start || r4_CurRowEn || r4_CurInputPieceEn || r4_CurColEn || c_KerRowContinueEn)    //CHN:每个新的窗口，重新计算初始地址
             r_Cur_kernel_row_col_noPad <= r_Cur_kernel_col_addr_noPad;
         else if (c_KerRowEn && c_bWorkEn)    //CHN:窗口内的传输，每次更新kerRow坐标加1行
             r_Cur_kernel_row_col_noPad <= r_Cur_kernel_row_col_noPad + i_OneLineSize;

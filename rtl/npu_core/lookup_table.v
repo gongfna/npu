@@ -89,14 +89,15 @@ module lookup_table(
      data28 ,
      data29 ,
      data30 ,
-     data31
+     data31 ,
+     q_encode
 
 
 
 
     );
     
-    input [3:0]w_addr;
+    input [4:0]w_addr;
     input [23:0]datain;
     input clka;
     input rst;
@@ -105,38 +106,38 @@ module lookup_table(
     
     
     
-    input [3:0] addr0;
-    input [3:0] addr1; 
-    input [3:0] addr2; 
-    input [3:0] addr3; 
-    input [3:0] addr4; 
-    input [3:0] addr5; 
-    input [3:0] addr6;
-    input [3:0] addr7 ; 
-    input [3:0] addr8 ; 
-    input [3:0] addr9 ; 
-    input [3:0] addr10; 
-    input [3:0] addr11; 
-    input [3:0] addr12;
-    input [3:0] addr13; 
-    input [3:0] addr14; 
-    input [3:0] addr15; 
-    input [3:0] addr16; 
-    input [3:0] addr17; 
-    input [3:0] addr18;
-    input [3:0] addr19; 
-    input [3:0] addr20; 
-    input [3:0] addr21; 
-    input [3:0] addr22; 
-    input [3:0] addr23; 
-    input [3:0] addr24;
-    input [3:0] addr25; 
-    input [3:0] addr26; 
-    input [3:0] addr27; 
-    input [3:0] addr28; 
-    input [3:0] addr29;
-    input [3:0] addr30; 
-    input [3:0] addr31;
+    input [4:0] addr0;
+    input [4:0] addr1; 
+    input [4:0] addr2; 
+    input [4:0] addr3; 
+    input [4:0] addr4; 
+    input [4:0] addr5; 
+    input [4:0] addr6;
+    input [4:0] addr7 ; 
+    input [4:0] addr8 ; 
+    input [4:0] addr9 ; 
+    input [4:0] addr10; 
+    input [4:0] addr11; 
+    input [4:0] addr12;
+    input [4:0] addr13; 
+    input [4:0] addr14; 
+    input [4:0] addr15; 
+    input [4:0] addr16; 
+    input [4:0] addr17; 
+    input [4:0] addr18;
+    input [4:0] addr19; 
+    input [4:0] addr20; 
+    input [4:0] addr21; 
+    input [4:0] addr22; 
+    input [4:0] addr23; 
+    input [4:0] addr24;
+    input [4:0] addr25; 
+    input [4:0] addr26; 
+    input [4:0] addr27; 
+    input [4:0] addr28; 
+    input [4:0] addr29;
+    input [4:0] addr30; 
+    input [4:0] addr31;
     output [23:0] data0;
     output [23:0] data1;
     output [23:0] data2;
@@ -169,9 +170,10 @@ module lookup_table(
     output [23:0] data29;
     output [23:0] data30;
     output [23:0] data31;
+    output [23:0] q_encode;
 
     
-   reg  [23:0] mem[15:0];
+   reg  [23:0] mem[18:0];
    
     always @(posedge clka or negedge rst)
     begin
@@ -192,6 +194,9 @@ module lookup_table(
     	mem[13] <= 24'b0;
     	mem[14] <= 24'b0;
     	mem[15] <= 24'b0;
+    	mem[16] <= 24'b0; 
+    	mem[17] <= 24'b0;
+    	mem[18] <= 24'b0;
     end
     	else if(we)
     	mem[w_addr]<=datain;
@@ -229,6 +234,7 @@ module lookup_table(
     assign data29 = mem[addr29];
     assign data30 = mem[addr30];
     assign data31 = mem[addr31];
+    assign q_encode = mem[18];
  
     
 endmodule

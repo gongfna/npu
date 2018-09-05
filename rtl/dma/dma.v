@@ -453,10 +453,8 @@ U_DMA_CORE
 //- xdma cfg
 .dma_finish(dma_done), 
 .dma_src_addr(dma_src_addr), 
-//.dma_src_addr(|stride ? dma_src_addr+18:dma_src_addr), 
 .dma_dst_addr(dma_dst_addr), 
 .dma_trans_len(dma_trans_len), 
-//.dma_trans_len(6), 
 .b_stream(b_stream), 
 .ex_dma(ex_dma), 
 .line_size(line_size), 
